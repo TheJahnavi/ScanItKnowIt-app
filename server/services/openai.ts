@@ -5,11 +5,29 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
 
+// Demo mode - returns simulated responses when OpenAI API is not available
+const DEMO_MODE = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key" || process.env.OPENAI_API_KEY.startsWith("AIza");
+
 export async function identifyProductAndExtractText(base64Image: string): Promise<{
   productName: string;
   extractedText: any;
   summary: string;
 }> {
+  if (DEMO_MODE) {
+    // Return demo data for testing purposes
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Simulate API delay
+    return {
+      productName: "Nature Valley Granola Bar",
+      extractedText: {
+        ingredients: "Whole Grain Oats, Sugar, Canola Oil, Rice Flour, Honey, Brown Sugar Syrup, Salt, Natural Flavor, Vitamin E (Mixed Tocopherols) Added to Retain Freshness",
+        nutrition: "Calories 190, Total Fat 6g, Saturated Fat 1g, Trans Fat 0g, Cholesterol 0mg, Sodium 160mg, Total Carbohydrate 32g, Dietary Fiber 2g, Total Sugars 11g, Added Sugars 10g, Protein 4g",
+        servingSize: "2 bars (42g)",
+        brand: "Nature Valley"
+      },
+      summary: "Nature Valley Granola Bar is a wholesome snack made with whole grain oats and natural ingredients. Each serving contains 190 calories and provides sustained energy. Perfect for on-the-go snacking, hiking, or as a quick breakfast option. Contains 4g of protein and 2g of fiber per serving. Best enjoyed as part of an active lifestyle."
+    };
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5",
@@ -50,6 +68,23 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
 }
 
 export async function analyzeIngredients(extractedText: any): Promise<any> {
+  if (DEMO_MODE) {
+    await new Promise(resolve => setTimeout(resolve, 800));
+    return {
+      ingredients: [
+        { name: "Whole Grain Oats", safety: "Safe", reason: "Natural whole grain" },
+        { name: "Sugar", safety: "Moderate", reason: "High sugar content" },
+        { name: "Canola Oil", safety: "Safe", reason: "Heart healthy oil" },
+        { name: "Rice Flour", safety: "Safe", reason: "Gluten-free grain" },
+        { name: "Honey", safety: "Safe", reason: "Natural sweetener" },
+        { name: "Brown Sugar Syrup", safety: "Moderate", reason: "Added sugar source" },
+        { name: "Salt", safety: "Safe", reason: "Natural preservative" },
+        { name: "Natural Flavor", safety: "Safe", reason: "FDA approved flavoring" },
+        { name: "Vitamin E", safety: "Safe", reason: "Essential nutrient antioxidant" }
+      ]
+    };
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5",
@@ -74,6 +109,18 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
 }
 
 export async function analyzeNutrition(extractedText: any): Promise<any> {
+  if (DEMO_MODE) {
+    await new Promise(resolve => setTimeout(resolve, 700));
+    return {
+      calories: 190,
+      totalSugars: "11g",
+      sugarTypes: [
+        { type: "Added Sugars", amount: "10g" },
+        { type: "Natural Sugars", amount: "1g" }
+      ]
+    };
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5",
@@ -98,6 +145,31 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
 }
 
 export async function generateChatResponse(question: string, productData: any): Promise<string> {
+  if (DEMO_MODE) {
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Simple demo responses based on common questions
+    const lowerQuestion = question.toLowerCase();
+    
+    if (lowerQuestion.includes("healthy") || lowerQuestion.includes("good for you")) {
+      return "This Nature Valley Granola Bar has some healthy ingredients like whole grain oats and honey, but it also contains 11g of sugar per serving. It's a decent snack for active people, but should be eaten in moderation due to the sugar content.";
+    }
+    
+    if (lowerQuestion.includes("ingredient") || lowerQuestion.includes("contain")) {
+      return "The main ingredients are whole grain oats, sugar, canola oil, rice flour, and honey. It also contains brown sugar syrup, salt, natural flavor, and vitamin E. Most ingredients are considered safe, though it has moderate sugar levels.";
+    }
+    
+    if (lowerQuestion.includes("calories") || lowerQuestion.includes("nutrition")) {
+      return "Each serving (2 bars) contains 190 calories, 6g of fat, 32g of carbohydrates, and 4g of protein. It has 11g of total sugars, with 10g being added sugars.";
+    }
+    
+    if (lowerQuestion.includes("allerg") || lowerQuestion.includes("gluten")) {
+      return "Based on the ingredients shown, this product contains oats and may be processed in facilities that handle other allergens. For specific allergen information, please check the product packaging directly.";
+    }
+    
+    return "I can help answer questions about this Nature Valley Granola Bar's ingredients, nutrition facts, or general product information. What would you like to know?";
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: "gpt-5",

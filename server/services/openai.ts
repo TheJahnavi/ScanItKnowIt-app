@@ -1,13 +1,13 @@
 import OpenAI from "openai";
 
-// Using OpenRouter with Gemini model as requested by user
+// Using OpenRouter with Llama model as requested by user
 const openai = new OpenAI({ 
   baseURL: "https://openrouter.ai/api/v1",
-  apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
+  apiKey: "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"
 });
 
-// Demo mode - returns simulated responses when OpenRouter API is not available
-const DEMO_MODE = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key";
+// Demo mode disabled - using real OpenRouter API
+const DEMO_MODE = false;
 
 export async function identifyProductAndExtractText(base64Image: string): Promise<{
   productName: string;
@@ -31,18 +31,18 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
 
   try {
     const response = await openai.chat.completions.create({
-      model: "google/gemini-2.5-flash-image-preview:free",
+      model: "meta-llama/llama-4-maverick:free",
       messages: [
         {
           role: "system",
-          content: "You are a product identification expert. Analyze the image to identify the product and extract all visible text. Respond with JSON in this format: { 'productName': string, 'extractedText': object, 'summary': string }"
+          content: "You are a product identification expert. Analyze the image to identify the product and extract all visible text. Respond with valid JSON only in this exact format: { \"productName\": \"string\", \"extractedText\": {\"ingredients\": \"string\", \"nutrition\": \"string\", \"brand\": \"string\"}, \"summary\": \"string\" }"
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Identify the product in this image, extract all visible text, and provide a 5-line summary as a product analyst focusing on what it is for and how to use it. Keep the response short and to the point but don't miss main details."
+              text: "Identify the product in this image, extract all visible text including ingredients and nutrition facts, and provide a 5-line summary. Return only valid JSON without any additional text or formatting."
             },
             {
               type: "image_url",
@@ -53,7 +53,6 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
           ],
         },
       ],
-      response_format: { type: "json_object" },
     }, {
       headers: {
         "HTTP-Referer": "https://scan-it-know-it.replit.app",
@@ -61,7 +60,35 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
       }
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    const content = response.choices[0].message.content || "";
+    let result;
+    
+    try {
+      // Try to parse the entire response as JSON
+      result = JSON.parse(content);
+    } catch (e) {
+      // If that fails, try to extract JSON from the response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          result = JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          // Fallback to parsing the content manually
+          result = {
+            productName: "Unknown Product",
+            extractedText: {},
+            summary: content || "Unable to analyze product"
+          };
+        }
+      } else {
+        result = {
+          productName: "Unknown Product", 
+          extractedText: {},
+          summary: content || "Unable to analyze product"
+        };
+      }
+    }
+    
     return {
       productName: result.productName || "Unknown Product",
       extractedText: result.extractedText || {},
@@ -93,18 +120,17 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "google/gemini-2.5-flash-image-preview:free",
+      model: "meta-llama/llama-4-maverick:free",
       messages: [
         {
           role: "system",
-          content: "You are a food scientist. From the following product label, list all of the ingredients, exactly as they are written. Do not add extra commentary. As a product health analyst, identify if the following extracted ingredient list is considered harmful. Base your answer on widely accepted health standards from organizations like the FDA, CPSC, and EU health agencies. For each ingredient, provide a specific, 3-4 word reason for its harmfulness, or simply state 'Safe' if it's not harmful. Respond with JSON in this format: { 'ingredients': [{ 'name': string, 'safety': string, 'reason': string }] }"
+          content: "You are a food scientist. Analyze ingredients and rate their safety. Respond with valid JSON only in this exact format: { \"ingredients\": [{ \"name\": \"string\", \"safety\": \"Safe|Moderate|Harmful\", \"reason\": \"string\" }] }"
         },
         {
           role: "user",
-          content: `Analyze the ingredients from this product data: ${JSON.stringify(extractedText)}`
+          content: `Analyze the ingredients from this product data and rate each ingredient's safety: ${JSON.stringify(extractedText)}. Return only valid JSON without any additional text.`
         },
       ],
-      response_format: { type: "json_object" },
     }, {
       headers: {
         "HTTP-Referer": "https://scan-it-know-it.replit.app",
@@ -112,7 +138,20 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
       }
     });
 
-    return JSON.parse(response.choices[0].message.content || "{}");
+    const content = response.choices[0].message.content || "";
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          return { ingredients: [] };
+        }
+      }
+      return { ingredients: [] };
+    }
   } catch (error) {
     console.error("Error analyzing ingredients:", error);
     throw new Error("Failed to analyze ingredients");
@@ -134,18 +173,17 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "google/gemini-2.5-flash-image-preview:free",
+      model: "meta-llama/llama-4-maverick:free",
       messages: [
         {
           role: "system",
-          content: "From the provided nutritional information, extract the total calories and sugar content with types of sugars from the extracted information from the images. Provide only the numbers and their units. Do not include any other text or commentary. Respond with JSON in this format: { 'calories': number, 'totalSugars': string, 'sugarTypes': [{ 'type': string, 'amount': string }] }"
+          content: "Extract nutrition data and respond with valid JSON only in this exact format: { \"calories\": number, \"totalSugars\": \"string\", \"sugarTypes\": [{ \"type\": \"string\", \"amount\": \"string\" }] }"
         },
         {
           role: "user",
-          content: `Extract nutrition data from: ${JSON.stringify(extractedText)}`
+          content: `Extract nutrition data from: ${JSON.stringify(extractedText)}. Return only valid JSON without any additional text.`
         },
       ],
-      response_format: { type: "json_object" },
     }, {
       headers: {
         "HTTP-Referer": "https://scan-it-know-it.replit.app",
@@ -153,7 +191,20 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
       }
     });
 
-    return JSON.parse(response.choices[0].message.content || "{}");
+    const content = response.choices[0].message.content || "";
+    try {
+      return JSON.parse(content);
+    } catch (e) {
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          return { calories: 0, totalSugars: "0g", sugarTypes: [] };
+        }
+      }
+      return { calories: 0, totalSugars: "0g", sugarTypes: [] };
+    }
   } catch (error) {
     console.error("Error analyzing nutrition:", error);
     throw new Error("Failed to analyze nutrition information");
@@ -188,15 +239,15 @@ export async function generateChatResponse(question: string, productData: any): 
 
   try {
     const response = await openai.chat.completions.create({
-      model: "google/gemini-2.5-flash-image-preview:free",
+      model: "meta-llama/llama-4-maverick:free",
       messages: [
         {
           role: "system",
-          content: "This prompt is for the chatbot. You are an AI assistant that answers user questions using only the provided product text and data. Be honest if the information is not present in the provided data. Keep responses helpful and concise."
+          content: "You are an AI assistant that answers user questions using only the provided product data. Be helpful and concise."
         },
         {
           role: "user",
-          content: `Product data: ${JSON.stringify(productData)}\n\nUser question: ${question}`
+          content: `Product data: ${JSON.stringify(productData)}\n\nUser question: ${question}\n\nAnswer based only on the product data provided.`
         },
       ],
     }, {

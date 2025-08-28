@@ -3,7 +3,7 @@ import OpenAI from "openai";
 // Using OpenRouter with Mistral model as requested by user
 const openai = new OpenAI({ 
   baseURL: "https://openrouter.ai/api/v1",
-  apiKey: "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"
+  apiKey: "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"
 });
 
 // Demo mode disabled - using real OpenRouter API

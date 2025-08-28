@@ -1,12 +1,13 @@
 import OpenAI from "openai";
 
-// the newest OpenAI model is "gpt-5" which was released August 7, 2025. do not change this unless explicitly requested by the user
+// Using OpenRouter with Gemini model as requested by user
 const openai = new OpenAI({ 
+  baseURL: "https://openrouter.ai/api/v1",
   apiKey: process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY_ENV_VAR || "default_key"
 });
 
-// Demo mode - returns simulated responses when OpenAI API is not available
-const DEMO_MODE = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key" || process.env.OPENAI_API_KEY.startsWith("AIza");
+// Demo mode - returns simulated responses when OpenRouter API is not available
+const DEMO_MODE = !process.env.OPENAI_API_KEY || process.env.OPENAI_API_KEY === "default_key";
 
 export async function identifyProductAndExtractText(base64Image: string): Promise<{
   productName: string;
@@ -30,7 +31,7 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "google/gemini-2.5-flash-image-preview:free",
       messages: [
         {
           role: "system",
@@ -53,6 +54,11 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
         },
       ],
       response_format: { type: "json_object" },
+    }, {
+      headers: {
+        "HTTP-Referer": "https://scan-it-know-it.replit.app",
+        "X-Title": "Scan It Know It"
+      }
     });
 
     const result = JSON.parse(response.choices[0].message.content || "{}");
@@ -87,7 +93,7 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "google/gemini-2.5-flash-image-preview:free",
       messages: [
         {
           role: "system",
@@ -99,6 +105,11 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
         },
       ],
       response_format: { type: "json_object" },
+    }, {
+      headers: {
+        "HTTP-Referer": "https://scan-it-know-it.replit.app",
+        "X-Title": "Scan It Know It"
+      }
     });
 
     return JSON.parse(response.choices[0].message.content || "{}");
@@ -123,7 +134,7 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "google/gemini-2.5-flash-image-preview:free",
       messages: [
         {
           role: "system",
@@ -135,6 +146,11 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
         },
       ],
       response_format: { type: "json_object" },
+    }, {
+      headers: {
+        "HTTP-Referer": "https://scan-it-know-it.replit.app",
+        "X-Title": "Scan It Know It"
+      }
     });
 
     return JSON.parse(response.choices[0].message.content || "{}");
@@ -172,7 +188,7 @@ export async function generateChatResponse(question: string, productData: any): 
 
   try {
     const response = await openai.chat.completions.create({
-      model: "gpt-5",
+      model: "google/gemini-2.5-flash-image-preview:free",
       messages: [
         {
           role: "system",
@@ -183,6 +199,11 @@ export async function generateChatResponse(question: string, productData: any): 
           content: `Product data: ${JSON.stringify(productData)}\n\nUser question: ${question}`
         },
       ],
+    }, {
+      headers: {
+        "HTTP-Referer": "https://scan-it-know-it.replit.app",
+        "X-Title": "Scan It Know It"
+      }
     });
 
     return response.choices[0].message.content || "I'm sorry, I couldn't generate a response to that question.";

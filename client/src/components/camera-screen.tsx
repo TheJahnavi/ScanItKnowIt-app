@@ -76,11 +76,21 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-secondary flex items-center justify-center">
-            <div className="text-center space-y-2">
+            <div className="text-center space-y-4">
               <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
-              <p className="text-muted-foreground">
-                {error ? "Camera unavailable" : "Starting camera..."}
+              <p className="text-muted-foreground text-sm px-4">
+                {error ? error : "Starting camera..."}
               </p>
+              {error && (
+                <Button 
+                  onClick={handleGalleryClick}
+                  className="bg-primary hover:bg-primary/90"
+                  data-testid="button-upload-fallback"
+                >
+                  <Images className="h-4 w-4 mr-2" />
+                  Upload Photo Instead
+                </Button>
+              )}
             </div>
           </div>
         )}

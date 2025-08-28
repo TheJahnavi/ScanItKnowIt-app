@@ -11,27 +11,63 @@ export function useCamera() {
     try {
       setError(null);
       
+      // Check if camera is available
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error("Camera not supported in this browser");
+      }
+
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // Try with less restrictive constraints first
+      let constraints = {
         video: {
           facingMode: facingMode,
-          width: { ideal: 1280 },
-          height: { ideal: 960 }
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 960, max: 1080 }
         },
         audio: false
-      });
+      };
 
-      streamRef.current = stream;
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
+        streamRef.current = stream;
 
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        setIsStreaming(true);
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setIsStreaming(true);
+        }
+      } catch (specificErr) {
+        // Try with basic constraints if specific ones fail
+        const basicConstraints = {
+          video: true,
+          audio: false
+        };
+        
+        const stream = await navigator.mediaDevices.getUserMedia(basicConstraints);
+        streamRef.current = stream;
+
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+          setIsStreaming(true);
+        }
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : "Failed to access camera";
+      let errorMessage = "Camera unavailable";
+      
+      if (err instanceof Error) {
+        if (err.name === "NotAllowedError") {
+          errorMessage = "Camera permission denied. Please allow camera access and try again.";
+        } else if (err.name === "NotFoundError") {
+          errorMessage = "No camera found. Use the upload button instead.";
+        } else if (err.name === "NotReadableError") {
+          errorMessage = "Camera in use by another app. Use upload instead.";
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
       setError(errorMessage);
       console.error("Camera error:", err);
     }

@@ -1,9 +1,9 @@
 import OpenAI from "openai";
 
-// Using OpenRouter with Llama model as requested by user
+// Using OpenRouter with Mistral model as requested by user
 const openai = new OpenAI({ 
   baseURL: "https://openrouter.ai/api/v1",
-  apiKey: "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"
+  apiKey: "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"
 });
 
 // Demo mode disabled - using real OpenRouter API
@@ -31,18 +31,14 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
 
   try {
     const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-4-maverick:free",
+      model: "google/gemini-flash-1.5:free",
       messages: [
-        {
-          role: "system",
-          content: "You are a product identification expert. Analyze the image to identify the product and extract all visible text. Respond with valid JSON only in this exact format: { \"productName\": \"string\", \"extractedText\": {\"ingredients\": \"string\", \"nutrition\": \"string\", \"brand\": \"string\"}, \"summary\": \"string\" }"
-        },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Identify the product in this image, extract all visible text including ingredients and nutrition facts, and provide a 5-line summary. Return only valid JSON without any additional text or formatting."
+              text: "You are a product identification expert. Analyze this image to identify the product and extract all visible text including ingredients and nutrition facts. Respond with valid JSON only in this exact format: { \"productName\": \"string\", \"extractedText\": {\"ingredients\": \"string\", \"nutrition\": \"string\", \"brand\": \"string\"}, \"summary\": \"string\" }"
             },
             {
               type: "image_url",
@@ -120,7 +116,7 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-4-maverick:free",
+      model: "mistralai/mistral-small-3.2-24b-instruct:free",
       messages: [
         {
           role: "system",
@@ -173,7 +169,7 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
 
   try {
     const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-4-maverick:free",
+      model: "mistralai/mistral-small-3.2-24b-instruct:free",
       messages: [
         {
           role: "system",
@@ -239,7 +235,7 @@ export async function generateChatResponse(question: string, productData: any): 
 
   try {
     const response = await openai.chat.completions.create({
-      model: "meta-llama/llama-4-maverick:free",
+      model: "mistralai/mistral-small-3.2-24b-instruct:free",
       messages: [
         {
           role: "system",

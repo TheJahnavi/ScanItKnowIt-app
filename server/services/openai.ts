@@ -1,10 +1,19 @@
 import OpenAI from "openai";
+import { 
+  analyzeImageWithVision, 
+  analyzeIngredientsHF, 
+  analyzeNutritionHF, 
+  generateChatResponseHF 
+} from "./huggingface";
 
 // Using OpenRouter with Mistral model as requested by user
 const openai = new OpenAI({ 
   baseURL: "https://openrouter.ai/api/v1",
   apiKey: "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"
 });
+
+// Flag to use HuggingFace instead of OpenRouter to avoid rate limits
+const USE_HUGGINGFACE = true;
 
 // Demo mode disabled - using real OpenRouter API
 const DEMO_MODE = false;
@@ -29,6 +38,16 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
     };
   }
 
+  // Use HuggingFace free API instead of OpenRouter to avoid rate limits
+  if (USE_HUGGINGFACE) {
+    try {
+      return await analyzeImageWithVision(base64Image);
+    } catch (error) {
+      console.error("Error with HuggingFace vision:", error);
+      // Fall back to OpenRouter if HuggingFace fails
+    }
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: "meta-llama/llama-3.2-11b-vision-instruct",
@@ -38,7 +57,7 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
           content: [
             {
               type: "text",
-              text: "You are a product identification expert. Analyze this image to identify the product and extract all visible text including ingredients and nutrition facts. Respond with valid JSON only in this exact format: { \"productName\": \"string\", \"extractedText\": {\"ingredients\": \"string\", \"nutrition\": \"string\", \"brand\": \"string\"}, \"summary\": \"string\" }"
+              text: "You are a product identification expert. Analyze this image to identify the product and extract all visible text including ingredients and nutrition facts. For the summary, act as a product analyst and summarize the key features based on the provided text. Focus on what it is for and how to use it. Do not include any extra commentary, keep your response short and to the point but do not miss the main details, within 5 lines. Respond with valid JSON only in this exact format: { \"productName\": \"string\", \"extractedText\": {\"ingredients\": \"string\", \"nutrition\": \"string\", \"brand\": \"string\"}, \"summary\": \"string\" }"
             },
             {
               type: "image_url",
@@ -114,17 +133,27 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
     };
   }
 
+  // Use HuggingFace free API instead of OpenRouter
+  if (USE_HUGGINGFACE) {
+    try {
+      return await analyzeIngredientsHF(extractedText);
+    } catch (error) {
+      console.error("Error with HuggingFace ingredients:", error);
+      // Fall back to OpenRouter if HuggingFace fails
+    }
+  }
+
   try {
     const response = await openai.chat.completions.create({
       model: "mistralai/mistral-small-3.2-24b-instruct:free",
       messages: [
         {
           role: "system",
-          content: "You are a food scientist. Analyze ingredients and rate their safety. Respond with valid JSON only in this exact format: { \"ingredients\": [{ \"name\": \"string\", \"safety\": \"Safe|Moderate|Harmful\", \"reason\": \"string\" }] }"
+          content: "You are a food scientist. From the following product label, list all ingredients exactly as they are written. As a product health analyst, identify if the following extracted ingredient list is considered harmful. Base your answer on widely accepted health standards from organizations like the FDA, CPSC, and EU health agencies. For each ingredient, provide a specific, 3-4 word reason for its harmfulness, or simply state 'Safe' if it's not. Respond with valid JSON only in this exact format: { \"ingredients\": [{ \"name\": \"string\", \"safety\": \"Safe|Moderate|Harmful\", \"reason\": \"string\" }] }"
         },
         {
           role: "user",
-          content: `Analyze the ingredients from this product data and rate each ingredient's safety: ${JSON.stringify(extractedText)}. Return only valid JSON without any additional text.`
+          content: `Analyze the ingredients from this product data: ${JSON.stringify(extractedText)}. Return only valid JSON without any additional text.`
         },
       ],
     }, {
@@ -185,7 +214,7 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
       messages: [
         {
           role: "system",
-          content: "Extract nutrition data and respond with valid JSON only in this exact format: { \"calories\": number, \"totalSugars\": \"string\", \"sugarTypes\": [{ \"type\": \"string\", \"amount\": \"string\" }] }"
+          content: "From the provided nutritional information, extract the total calories and sugar content with types of sugars from the extracted information. Provide only the numbers and their units. Do not include any other text or commentary. Respond with valid JSON only in this exact format: { \"calories\": number, \"totalSugars\": \"string\", \"sugarTypes\": [{ \"type\": \"string\", \"amount\": \"string\" }] }"
         },
         {
           role: "user",
@@ -264,7 +293,7 @@ export async function generateChatResponse(question: string, productData: any): 
       messages: [
         {
           role: "system",
-          content: "You are an AI assistant that answers user questions using only the provided product data. Be helpful and concise."
+          content: "This prompt is for the chatbot. Answer the user's question using only the provided product data and be honest if the information is not present. Be helpful and concise."
         },
         {
           role: "user",

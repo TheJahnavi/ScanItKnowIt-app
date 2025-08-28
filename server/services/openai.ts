@@ -31,7 +31,7 @@ export async function identifyProductAndExtractText(base64Image: string): Promis
 
   try {
     const response = await openai.chat.completions.create({
-      model: "google/gemini-flash-1.5:free",
+      model: "meta-llama/llama-3.2-11b-vision-instruct",
       messages: [
         {
           role: "user",

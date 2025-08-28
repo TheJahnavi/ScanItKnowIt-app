@@ -150,6 +150,18 @@ export async function analyzeIngredients(extractedText: any): Promise<any> {
     }
   } catch (error) {
     console.error("Error analyzing ingredients:", error);
+    if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
+      // Return a fallback response when rate limited
+      return {
+        ingredients: [
+          {
+            name: "Rate Limit Reached",
+            safety: "Safe",
+            reason: "OpenRouter free tier limit reached. Please add credits to continue analysis or try again later."
+          }
+        ]
+      };
+    }
     throw new Error("Failed to analyze ingredients");
   }
 }
@@ -203,6 +215,19 @@ export async function analyzeNutrition(extractedText: any): Promise<any> {
     }
   } catch (error) {
     console.error("Error analyzing nutrition:", error);
+    if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
+      // Return a fallback response when rate limited
+      return {
+        calories: 0,
+        totalSugars: "N/A - Rate limit reached",
+        sugarTypes: [
+          {
+            type: "Rate Limit Notice",
+            amount: "OpenRouter free tier limit reached. Please add credits to continue analysis."
+          }
+        ]
+      };
+    }
     throw new Error("Failed to analyze nutrition information");
   }
 }
@@ -256,6 +281,9 @@ export async function generateChatResponse(question: string, productData: any): 
     return response.choices[0].message.content || "I'm sorry, I couldn't generate a response to that question.";
   } catch (error) {
     console.error("Error generating chat response:", error);
-    throw new Error("Failed to generate chat response");
+    if (error instanceof Error && error.message.includes("Rate limit exceeded")) {
+      return "I've reached the daily rate limit for OpenRouter's free tier. To continue using the AI chat feature, you can add credits to your OpenRouter account or try again tomorrow when the limit resets.";
+    }
+    return "Sorry, I encountered an error while processing your question. Please try again.";
   }
 }

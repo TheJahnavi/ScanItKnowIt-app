@@ -60,12 +60,12 @@ app.use((req, res, next) => {
   // Other ports are firewalled. Default to 8000 if not specified.
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
-  const port = parseInt(process.env.PORT || '8000', 10);
+  const port = parseInt(process.env.PORT || '3001', 10);
   server.listen({
     port,
-    host: "0.0.0.0",
-    reusePort: true,
+    host: "127.0.0.1",
+    reusePort: false,
   }, () => {
-    log(`serving on port ${port}`);
+    log(`serving on http://127.0.0.1:${port}`);
   });
 })();

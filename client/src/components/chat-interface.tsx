@@ -8,9 +8,10 @@ import type { ChatMessage } from "@/types/analysis";
 
 interface ChatInterfaceProps {
   analysisId: string;
+  productName?: string;
 }
 
-export function ChatInterface({ analysisId }: ChatInterfaceProps) {
+export function ChatInterface({ analysisId, productName }: ChatInterfaceProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -69,7 +70,7 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
               <Bot className="text-primary-foreground text-xs" />
             </div>
             <div className="flex-1">
-              <p className="text-sm">Hi! I'm here to answer any questions about this product. What would you like to know?</p>
+              <p className="text-sm">What do you want to know about "{productName || "product name"}"</p>
             </div>
           </div>
         </div>
@@ -138,7 +139,7 @@ export function ChatInterface({ analysisId }: ChatInterfaceProps) {
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Ask about ingredients, nutrition, etc..."
+          placeholder="im at your assistance"
           className="flex-1"
           disabled={sendMessageMutation.isPending}
           data-testid="input-chat"

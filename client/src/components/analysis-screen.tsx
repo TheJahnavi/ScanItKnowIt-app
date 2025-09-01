@@ -15,8 +15,10 @@ export function AnalysisScreen({ analysis, onScanAnother }: AnalysisScreenProps)
 
   const handleCardToggle = (cardType: CardType) => {
     if (openCard === cardType) {
+      // Close the currently open card
       setOpenCard(null);
     } else {
+      // Close any other open card and open this one
       setOpenCard(cardType);
     }
   };
@@ -93,6 +95,7 @@ export function AnalysisScreen({ analysis, onScanAnother }: AnalysisScreenProps)
             title={card.title}
             description={card.description}
             analysisId={analysis.analysisId}
+            productName={analysis.productName}
             isOpen={openCard === card.type}
             onToggle={() => handleCardToggle(card.type)}
             data={cardData[card.type]}

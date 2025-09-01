@@ -11,38 +11,67 @@ const TEXT_MODEL = "microsoft/DialoGPT-medium"; // Free text generation model
 
 export async function analyzeImageWithVision(base64Image: string): Promise<any> {
   try {
-    // Convert base64 to buffer
-    const imageBuffer = Buffer.from(base64Image, 'base64');
+    // Use multiple HuggingFace models for better text extraction
+    const models = [
+      "Salesforce/blip-image-captioning-large",
+      "microsoft/trocr-base-printed", // OCR model for text extraction
+      "nlpconnect/vit-gpt2-image-captioning"
+    ];
     
-    // Use BLIP for image captioning and analysis
-    const response = await fetch(`${HF_BASE_URL}/${VISION_MODEL}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        inputs: base64Image,
-        options: { wait_for_model: true }
-      })
-    });
+    let bestResult = null;
+    let bestConfidence = 0;
+    
+    // Try multiple models to get the best text extraction
+    for (const model of models) {
+      try {
+        const response = await fetch(`${HF_BASE_URL}/${model}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            inputs: base64Image,
+            options: { wait_for_model: true }
+          })
+        });
 
-    if (!response.ok) {
-      throw new Error(`HuggingFace API error: ${response.statusText}`);
+        if (response.ok) {
+          const result = await response.json() as any;
+          const caption = result[0]?.generated_text || result.generated_text || "";
+          
+          if (caption && caption.length > bestConfidence) {
+            bestResult = caption;
+            bestConfidence = caption.length;
+          }
+        }
+      } catch (modelError) {
+        console.log(`Model ${model} failed, trying next...`);
+        continue;
+      }
     }
-
-    const result = await response.json();
     
-    // Extract basic product info from image caption
-    const caption = result[0]?.generated_text || "Unable to analyze image";
+    const caption = bestResult || "Unable to analyze image";
+    console.log("HuggingFace analysis result:", caption);
+    
+    // Enhanced text extraction and product identification
+    const extractedProductName = extractProductName(caption);
+    const extractedBrand = extractBrand(caption);
+    
+    // Try to extract ingredients and nutrition from text
+    const ingredientsMatch = caption.match(/ingredients?[:\s]+([^.\n]+)/i);
+    const nutritionMatch = caption.match(/(\d+)\s*calories?|nutrition[:\s]+([^.\n]+)/i);
     
     return {
-      productName: extractProductName(caption),
+      productName: extractedProductName,
       extractedText: {
-        ingredients: "Please check product packaging for complete ingredient list",
-        nutrition: "Please check product packaging for nutrition facts",
-        brand: extractBrand(caption)
+        ingredients: ingredientsMatch ? ingredientsMatch[1] : "Please check product packaging for complete ingredient list",
+        nutrition: nutritionMatch ? nutritionMatch[0] : "Please check product packaging for nutrition facts",
+        brand: extractedBrand,
+        barcode: extractBarcode(caption),
+        productType: extractProductType(caption),
+        allText: caption
       },
-      summary: generateSummaryFromCaption(caption)
+      summary: generateSummaryFromCaption(caption, extractedProductName)
     };
     
   } catch (error) {
@@ -172,28 +201,134 @@ export async function generateChatResponseHF(question: string, productData: any)
 
 // Helper functions
 function extractProductName(caption: string): string {
-  // Simple extraction from image caption
-  const words = caption.split(' ');
-  return words.slice(0, 3).join(' ') || "Product";
+  // Improved extraction from image caption using multiple strategies
+  const lowerCaption = caption.toLowerCase();
+  
+  // Look for common food/product patterns
+  const productPatterns = [
+    /(\w+\s+\w+)\s+bar/i,  // "Nature Valley bar"
+    /(\w+\s+\w+)\s+snack/i, // "Granola snack"
+    /(\w+)\s+(granola|energy|protein|cereal|crackers|chips)/i,
+    /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g // Capitalized words
+  ];
+  
+  for (const pattern of productPatterns) {
+    const match = caption.match(pattern);
+    if (match && match[1] && match[1].length > 2) {
+      const productName = match[1].trim();
+      // Validate it's not a generic word
+      if (!['image', 'photo', 'picture', 'food', 'item', 'product'].includes(productName.toLowerCase())) {
+        return productName;
+      }
+    }
+  }
+  
+  // Fallback: try to extract first meaningful words
+  const words = caption.split(' ').filter(word => 
+    word.length > 2 && 
+    !['the', 'and', 'with', 'for', 'are', 'this', 'that'].includes(word.toLowerCase())
+  );
+  
+  if (words.length >= 2) {
+    return words.slice(0, 2).join(' ');
+  } else if (words.length === 1) {
+    return words[0] + ' Product';
+  }
+  
+  return "Unidentified Product";
 }
 
 function extractBrand(caption: string): string {
-  // Look for common brand indicators in caption
-  const brandWords = ['brand', 'company', 'made by'];
-  for (const word of caption.split(' ')) {
-    if (word.length > 3 && word[0] === word[0].toUpperCase()) {
+  // Enhanced brand extraction
+  const lowerCaption = caption.toLowerCase();
+  
+  // Look for known brand patterns
+  const knownBrands = [
+    'nature valley', 'clif', 'kind', 'quaker', 'kellogg', 'general mills',
+    'nabisco', 'pepsi', 'coca cola', 'frito lay', 'doritos', 'lays'
+  ];
+  
+  for (const brand of knownBrands) {
+    if (lowerCaption.includes(brand)) {
+      return brand.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1)
+      ).join(' ');
+    }
+  }
+  
+  // Look for capitalized words that might be brands
+  const words = caption.split(' ');
+  for (const word of words) {
+    if (word.length > 2 && word[0] === word[0].toUpperCase() && 
+        !['The', 'And', 'With', 'For'].includes(word)) {
       return word;
     }
   }
+  
   return "Brand not detected";
 }
 
-function generateSummaryFromCaption(caption: string): string {
-  return `This appears to be a consumer product based on image analysis. 
-The product seems to be intended for general use.
-For specific usage instructions, please refer to product packaging.
-Quality and safety information should be verified from official sources.
-Please check the product label for detailed information.`;
+function generateSummaryFromCaption(caption: string, productName?: string): string {
+  // Enhanced summary generation based on caption analysis
+  const name = productName || "This product";
+  const lowerCaption = caption.toLowerCase();
+  
+  // Detect product category for better summary
+  let category = "consumer product";
+  let usage = "general use";
+  
+  if (lowerCaption.includes('granola') || lowerCaption.includes('bar') || lowerCaption.includes('snack')) {
+    category = "snack bar";
+    usage = "convenient on-the-go nutrition and energy boost";
+  } else if (lowerCaption.includes('cereal') || lowerCaption.includes('breakfast')) {
+    category = "breakfast cereal";
+    usage = "morning nutrition as part of a balanced breakfast";
+  } else if (lowerCaption.includes('drink') || lowerCaption.includes('beverage')) {
+    category = "beverage";
+    usage = "refreshment and hydration";
+  } else if (lowerCaption.includes('chip') || lowerCaption.includes('crackers')) {
+    category = "snack food";
+    usage = "casual snacking and entertainment";
+  }
+  
+  return `${name} is a ${category} designed for ${usage} based on visual analysis.
+The product appears to be intended for consumer use with focus on convenience and portability.
+For specific usage instructions and nutritional information, refer to product packaging and labels.
+Quality and safety information should be verified from official manufacturer sources.
+Please check the product label for complete detailed information and dietary considerations.`;
+}
+
+function extractBarcode(caption: string): string {
+  // Try to extract barcode/UPC numbers
+  const barcodePattern = /\b\d{12,14}\b/;
+  const match = caption.match(barcodePattern);
+  return match ? match[0] : "";
+}
+
+function extractProductType(caption: string): string {
+  // Extract product category from caption
+  const lowerCaption = caption.toLowerCase();
+  
+  const typeMap = {
+    'granola': 'Granola Bar',
+    'energy': 'Energy Bar',
+    'protein': 'Protein Bar',
+    'cereal': 'Cereal',
+    'crackers': 'Crackers',
+    'chips': 'Chips',
+    'drink': 'Beverage',
+    'juice': 'Juice',
+    'soda': 'Soft Drink',
+    'bar': 'Snack Bar'
+  };
+  
+  for (const [keyword, type] of Object.entries(typeMap)) {
+    if (lowerCaption.includes(keyword)) {
+      return type;
+    }
+  }
+  
+  return "Product";
 }
 
 function capitalizeFirst(str: string): string {

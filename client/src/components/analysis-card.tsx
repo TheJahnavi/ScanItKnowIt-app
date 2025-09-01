@@ -12,6 +12,7 @@ interface AnalysisCardProps {
   title: string;
   description: string;
   analysisId: string;
+  productName?: string;
   isOpen: boolean;
   onToggle: () => void;
   data?: any;
@@ -46,6 +47,7 @@ export function AnalysisCard({
   title, 
   description, 
   analysisId, 
+  productName,
   isOpen, 
   onToggle, 
   data, 
@@ -100,7 +102,7 @@ export function AnalysisCard({
 
   const renderContent = () => {
     if (type === "qa") {
-      return <ChatInterface analysisId={analysisId} />;
+      return <ChatInterface analysisId={analysisId} productName={productName} />;
     }
 
     if (fetchDataMutation.isPending) {
@@ -180,14 +182,16 @@ export function AnalysisCard({
 
 function IngredientsContent({ data }: { data: IngredientsData }) {
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 gap-3">
       {data.ingredients?.map((ingredient, index) => (
         <div key={index} className="flex items-center justify-between p-3 bg-secondary rounded-xl">
           <div className="flex-1">
-            <p className="font-medium text-sm">{ingredient.name}</p>
+            <p className="font-medium text-sm text-foreground">{ingredient.name}</p>
             <p className={`text-xs ${
               ingredient.safety === "Safe" 
                 ? "text-green-600 dark:text-green-400" 
+                : ingredient.safety === "Harmful"
+                ? "text-red-600 dark:text-red-400"
                 : "text-yellow-600 dark:text-yellow-400"
             }`}>
               {ingredient.reason}
@@ -196,12 +200,18 @@ function IngredientsContent({ data }: { data: IngredientsData }) {
           <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
             ingredient.safety === "Safe"
               ? "bg-green-100 dark:bg-green-900/30"
+              : ingredient.safety === "Harmful"
+              ? "bg-red-100 dark:bg-red-900/30"
               : "bg-yellow-100 dark:bg-yellow-900/30"
           }`}>
             {ingredient.safety === "Safe" ? (
               <Check className="text-green-600 dark:text-green-400 text-xs" />
             ) : (
-              <AlertTriangle className="text-yellow-600 dark:text-yellow-400 text-xs" />
+              <AlertTriangle className={`text-xs ${
+                ingredient.safety === "Harmful" 
+                  ? "text-red-600 dark:text-red-400"
+                  : "text-yellow-600 dark:text-yellow-400"
+              }`} />
             )}
           </div>
         </div>
@@ -229,9 +239,9 @@ function NutritionContent({ data }: { data: NutritionData }) {
           <h4 className="font-medium text-sm">Sugar Types</h4>
           <div className="space-y-2">
             {data.sugarTypes.map((sugar, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span>{sugar.type}</span>
-                <span className="font-medium">{sugar.amount}</span>
+              <div key={index} className="flex justify-between text-sm p-2 bg-secondary rounded-lg">
+                <span className="text-foreground">{sugar.type}</span>
+                <span className="font-medium text-primary">{sugar.amount}</span>
               </div>
             ))}
           </div>

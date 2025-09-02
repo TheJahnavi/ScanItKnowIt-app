@@ -22,19 +22,9 @@ const demoData = {
         reason: "High fiber content"
       },
       {
-        name: "Sugar",
-        safety: "Moderate",
-        reason: "Added sweetener"
-      },
-      {
-        name: "Salt",
+        name: "Vitamins (A, C, D)",
         safety: "Safe",
-        reason: "Flavor enhancement"
-      },
-      {
-        name: "Malt Flavor",
-        safety: "Safe",
-        reason: "Natural flavoring"
+        reason: "Essential nutrients"
       },
       {
         name: "Iron",
@@ -42,9 +32,19 @@ const demoData = {
         reason: "Essential mineral"
       },
       {
-        name: "Vitamins (A, C, D)",
+        name: "Sugar",
+        safety: "Moderate",
+        reason: "High sugar content"
+      },
+      {
+        name: "Salt",
+        safety: "Moderate",
+        reason: "High sodium levels"
+      },
+      {
+        name: "Malt Flavor",
         safety: "Safe",
-        reason: "Essential nutrients"
+        reason: "Natural flavoring"
       },
       {
         name: "Folic Acid",
@@ -91,30 +91,79 @@ function analyzeIngredientsFromText(extractedText: any): any {
   const analyzedIngredients = ingredientsList.map((ingredient: string) => {
     const cleanName = ingredient.replace(/[()\[\]]/g, '').trim();
     
-    // Safety analysis based on ingredient name
+    // Enhanced safety analysis based on ingredient name and health standards
     let safety = "Safe";
     let reason = "Generally recognized as safe";
     
     const lowerName = cleanName.toLowerCase();
     
-    if (lowerName.includes('sugar') || lowerName.includes('syrup') || lowerName.includes('sweetener')) {
+    // Harmful ingredients (RED)
+    if (lowerName.includes('trans fat') || lowerName.includes('hydrogenated oil') || lowerName.includes('partially hydrogenated')) {
+      safety = "Harmful";
+      reason = "Contains trans fats";
+    } else if (lowerName.includes('high fructose corn syrup') || lowerName.includes('hfcs')) {
+      safety = "Harmful";
+      reason = "Linked to obesity";
+    } else if (lowerName.includes('sodium nitrite') || lowerName.includes('sodium nitrate')) {
+      safety = "Harmful";
+      reason = "Potential carcinogen";
+    } else if (lowerName.includes('bha') || lowerName.includes('bht') || lowerName.includes('butylated hydroxyanisole')) {
+      safety = "Harmful";
+      reason = "Suspected carcinogen";
+    } else if (lowerName.includes('monosodium glutamate') || lowerName.includes('msg')) {
+      safety = "Harmful";
+      reason = "May cause headaches";
+    } else if (lowerName.includes('aspartame') || lowerName.includes('saccharin')) {
+      safety = "Harmful";
+      reason = "Artificial sweetener risks";
+    }
+    
+    // Moderate concern ingredients (YELLOW)
+    else if (lowerName.includes('sugar') || lowerName.includes('syrup') || lowerName.includes('sweetener') || lowerName.includes('dextrose')) {
       safety = "Moderate";
-      reason = "Added sugar content";
-    } else if (lowerName.includes('artificial') || lowerName.includes('preservative')) {
+      reason = "High sugar content";
+    } else if (lowerName.includes('sodium') || lowerName.includes('salt') && !lowerName.includes('sea salt')) {
+      safety = "Moderate";
+      reason = "High sodium levels";
+    } else if (lowerName.includes('artificial flavor') || lowerName.includes('artificial color') || lowerName.includes('artificial')) {
       safety = "Moderate";
       reason = "Artificial additive";
-    } else if (lowerName.includes('trans fat') || lowerName.includes('hydrogenated')) {
-      safety = "Harmful";
-      reason = "Trans fat content";
-    } else if (lowerName.includes('wheat') || lowerName.includes('rice') || lowerName.includes('oat')) {
+    } else if (lowerName.includes('preservative') || lowerName.includes('citric acid') || lowerName.includes('potassium sorbate')) {
+      safety = "Moderate";
+      reason = "Chemical preservative";
+    } else if (lowerName.includes('corn syrup') || lowerName.includes('glucose syrup')) {
+      safety = "Moderate";
+      reason = "Processed sweetener";
+    } else if (lowerName.includes('modified') || lowerName.includes('modified starch') || lowerName.includes('modified corn')) {
+      safety = "Moderate";
+      reason = "Processed ingredient";
+    }
+    
+    // Safe ingredients (GREEN)
+    else if (lowerName.includes('wheat') || lowerName.includes('rice') || lowerName.includes('oat') || lowerName.includes('barley')) {
       safety = "Safe";
       reason = "Whole grain source";
     } else if (lowerName.includes('vitamin') || lowerName.includes('mineral') || lowerName.includes('iron') || lowerName.includes('calcium')) {
       safety = "Safe";
       reason = "Essential nutrient";
-    } else if (lowerName.includes('salt') || lowerName.includes('sodium')) {
+    } else if (lowerName.includes('fiber') || lowerName.includes('bran') || lowerName.includes('cellulose')) {
       safety = "Safe";
-      reason = "Flavor enhancement";
+      reason = "Dietary fiber";
+    } else if (lowerName.includes('natural flavor') || lowerName.includes('vanilla extract') || lowerName.includes('cocoa')) {
+      safety = "Safe";
+      reason = "Natural flavoring";
+    } else if (lowerName.includes('sea salt') || lowerName.includes('himalayan salt')) {
+      safety = "Safe";
+      reason = "Natural mineral salt";
+    } else if (lowerName.includes('honey') || lowerName.includes('maple') || lowerName.includes('molasses')) {
+      safety = "Safe";
+      reason = "Natural sweetener";
+    } else if (lowerName.includes('protein') || lowerName.includes('amino acid')) {
+      safety = "Safe";
+      reason = "Protein source";
+    } else if (lowerName.includes('oil') && (lowerName.includes('olive') || lowerName.includes('sunflower') || lowerName.includes('coconut'))) {
+      safety = "Safe";
+      reason = "Natural oil source";
     }
     
     return {
@@ -124,8 +173,14 @@ function analyzeIngredientsFromText(extractedText: any): any {
     };
   });
   
+  // Sort by safety level for better visual organization
+  const sortedIngredients = analyzedIngredients.sort((a, b) => {
+    const order = { "Safe": 0, "Moderate": 1, "Harmful": 2 };
+    return order[a.safety as keyof typeof order] - order[b.safety as keyof typeof order];
+  });
+  
   return {
-    ingredients: analyzedIngredients.slice(0, 8) // Limit to 8 ingredients for display
+    ingredients: sortedIngredients.slice(0, 12) // Limit to 12 ingredients for display
   };
 }
 

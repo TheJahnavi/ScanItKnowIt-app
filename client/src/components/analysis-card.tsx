@@ -182,40 +182,91 @@ export function AnalysisCard({
 
 function IngredientsContent({ data }: { data: IngredientsData }) {
   return (
-    <div className="grid grid-cols-1 gap-3">
-      {data.ingredients?.map((ingredient, index) => (
-        <div key={index} className="flex items-center justify-between p-3 bg-secondary rounded-xl">
-          <div className="flex-1">
-            <p className="font-medium text-sm text-foreground">{ingredient.name}</p>
-            <p className={`text-xs ${
-              ingredient.safety === "Safe" 
-                ? "text-green-600 dark:text-green-400" 
-                : ingredient.safety === "Harmful"
-                ? "text-red-600 dark:text-red-400"
-                : "text-yellow-600 dark:text-yellow-400"
-            }`}>
-              {ingredient.reason}
-            </p>
+    <div className="space-y-3">
+      <div className="text-sm text-muted-foreground mb-4">
+        <div className="flex items-center space-x-4 text-xs">
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
+            <span>Safe</span>
           </div>
-          <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
-            ingredient.safety === "Safe"
-              ? "bg-green-100 dark:bg-green-900/30"
-              : ingredient.safety === "Harmful"
-              ? "bg-red-100 dark:bg-red-900/30"
-              : "bg-yellow-100 dark:bg-yellow-900/30"
-          }`}>
-            {ingredient.safety === "Safe" ? (
-              <Check className="text-green-600 dark:text-green-400 text-xs" />
-            ) : (
-              <AlertTriangle className={`text-xs ${
-                ingredient.safety === "Harmful" 
-                  ? "text-red-600 dark:text-red-400"
-                  : "text-yellow-600 dark:text-yellow-400"
-              }`} />
-            )}
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <span>Moderate</span>
+          </div>
+          <div className="flex items-center space-x-1">
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
+            <span>Harmful</span>
           </div>
         </div>
-      ))}
+      </div>
+      
+      <div className="grid grid-cols-1 gap-2">
+        {data.ingredients?.map((ingredient, index) => {
+          const safetyLevel = ingredient.safety || "Safe";
+          const isHarmful = safetyLevel === "Harmful";
+          const isModerate = safetyLevel === "Moderate";
+          const isSafe = safetyLevel === "Safe";
+          
+          return (
+            <div 
+              key={index} 
+              className={`flex items-center justify-between p-3 rounded-xl border-l-4 ${
+                isSafe 
+                  ? "bg-green-50 dark:bg-green-900/20 border-l-green-500 hover:bg-green-100 dark:hover:bg-green-900/30"
+                  : isModerate
+                  ? "bg-yellow-50 dark:bg-yellow-900/20 border-l-yellow-500 hover:bg-yellow-100 dark:hover:bg-yellow-900/30" 
+                  : "bg-red-50 dark:bg-red-900/20 border-l-red-500 hover:bg-red-100 dark:hover:bg-red-900/30"
+              } transition-colors`}
+            >
+              <div className="flex-1">
+                <p className={`font-medium text-sm ${
+                  isSafe 
+                    ? "text-green-800 dark:text-green-200"
+                    : isModerate
+                    ? "text-yellow-800 dark:text-yellow-200"
+                    : "text-red-800 dark:text-red-200"
+                }`}>
+                  {ingredient.name}
+                </p>
+                <p className={`text-xs mt-1 ${
+                  isSafe 
+                    ? "text-green-600 dark:text-green-400" 
+                    : isModerate
+                    ? "text-yellow-600 dark:text-yellow-400"
+                    : "text-red-600 dark:text-red-400"
+                }`}>
+                  {ingredient.reason}
+                </p>
+              </div>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+                isSafe
+                  ? "bg-green-100 dark:bg-green-800/50"
+                  : isModerate
+                  ? "bg-yellow-100 dark:bg-yellow-800/50"
+                  : "bg-red-100 dark:bg-red-800/50"
+              }`}>
+                {isSafe ? (
+                  <Check className="w-4 h-4 text-green-600 dark:text-green-400" />
+                ) : (
+                  <AlertTriangle className={`w-4 h-4 ${
+                    isModerate
+                      ? "text-yellow-600 dark:text-yellow-400"
+                      : "text-red-600 dark:text-red-400"
+                  }`} />
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      
+      {data.ingredients && data.ingredients.length > 0 && (
+        <div className="mt-4 p-3 bg-muted rounded-lg">
+          <p className="text-xs text-muted-foreground">
+            Safety assessment based on FDA, CPSC, and EU health standards. Always consult packaging for complete ingredient information and allergen warnings.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

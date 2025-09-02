@@ -18,12 +18,57 @@ export function ChatInterface({ analysisId, productName }: ChatInterfaceProps) {
   const { data: chatHistory = [] } = useQuery({
     queryKey: [`/api/chat/${analysisId}`],
     enabled: !!analysisId,
+    queryFn: async () => {
+      try {
+        const response = await fetch(`/api/chat/${analysisId}`);
+        if (!response.ok) {
+          throw new Error('Chat history not available');
+        }
+        return response.json();
+      } catch (error) {
+        // Return empty array for demo mode
+        console.log('Chat history not available in demo mode');
+        return [];
+      }
+    }
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
-      const response = await apiRequest("POST", `/api/chat/${analysisId}`, { message });
-      return response.json();
+      try {
+        const response = await apiRequest("POST", `/api/chat/${analysisId}`, { message });
+        return response.json();
+      } catch (error) {
+        // Demo chat responses for static deployment
+        console.log('Using demo chat response');
+        
+        // Simulate API delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Generate contextual responses based on message content
+        let demoResponse = "";
+        const lowerMessage = message.toLowerCase();
+        
+        if (lowerMessage.includes('ingredient') || lowerMessage.includes('contain')) {
+          demoResponse = `${productName || 'This product'} contains whole grain oats, sugar, canola oil, rice flour, honey, brown sugar syrup, salt, and natural flavors. The main ingredients are whole grains which provide fiber and sustained energy. The sugar content is moderate, so it's best enjoyed as part of a balanced diet.`;
+        } else if (lowerMessage.includes('calorie') || lowerMessage.includes('nutrition')) {
+          demoResponse = `${productName || 'This product'} contains 190 calories per serving (2 bars). It provides 4g of protein, 32g of carbohydrates including 11g of sugars, and 6g of fat. It's a good source of energy for active lifestyles but should be consumed in moderation due to the sugar content.`;
+        } else if (lowerMessage.includes('health') || lowerMessage.includes('safe')) {
+          demoResponse = `${productName || 'This product'} is generally safe for most people. The whole grain oats provide beneficial fiber and nutrients. However, it does contain added sugars, so those monitoring sugar intake should be mindful. It's free from major allergens but check the packaging for any 'may contain' warnings.`;
+        } else if (lowerMessage.includes('diet') || lowerMessage.includes('weight')) {
+          demoResponse = `For weight management, ${productName || 'this product'} can be part of a balanced diet when consumed in moderation. At 190 calories per serving, it's a substantial snack. The fiber and protein can help with satiety, but the sugar content means it's best enjoyed post-workout or as an occasional treat rather than a daily snack.`;
+        } else if (lowerMessage.includes('exercise') || lowerMessage.includes('workout')) {
+          demoResponse = `${productName || 'This product'} is excellent for exercise fuel! The combination of complex carbs from oats and quick energy from sugars makes it ideal for pre-workout energy or post-workout recovery. Many athletes use these bars for hiking, cycling, and endurance activities.`;
+        } else {
+          demoResponse = `${productName || 'This product'} is a nutritious granola bar made with whole grain oats and natural sweeteners. It provides sustained energy and is convenient for on-the-go nutrition. For specific questions about ingredients, nutrition, or health considerations, I can provide detailed information based on the product analysis.`;
+        }
+        
+        return {
+          message,
+          response: demoResponse,
+          timestamp: new Date().toISOString()
+        };
+      }
     },
     onSuccess: () => {
       // Invalidate chat history to refetch

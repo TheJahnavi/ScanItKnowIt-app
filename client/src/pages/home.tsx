@@ -71,64 +71,119 @@ async function performOCRAnalysis(base64Image: string): Promise<{extractedText: 
   return null;
 }
 
-// Analyze extracted text to identify product
+// Analyze extracted text to identify product with enhanced cosmetic/skincare detection
 function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
   const lowerText = text.toLowerCase();
   const lines = text.split('\n').filter(line => line.trim());
   
-  // Advanced product name identification with sophisticated title detection
+  // Enhanced product type detection - prioritize cosmetic/skincare identification
   let productName = "Unknown Product";
   let brand = "";
-  let productType = "Food Product";
+  let productType = "Food Product"; // Default
+  let category = "Food Product";
   
-  // Advanced title detection - analyze OCR text for product titles
-  const titleCandidates = [];
-  const cleanLines = lines.map(line => line.trim()).filter(line => line.length > 0);
+  // PRIORITY 1: Detect cosmetic/skincare products by ingredients
+  const cosmeticIngredients = [
+    'aqua', 'water', 'niacinamide', 'zinc pca', 'tamarindus indica', 'pentylene glycol',
+    'carrageenan', 'acacia senegal', 'xanthan gum', 'ppg-26', 'buteth-26', 'peg-40',
+    'hydrogenated castor oil', 'ethoxydiglycol', 'phenoxyethanol', 'chlorphenesin',
+    'glycerin', 'dimethicone', 'hyaluronic acid', 'retinol', 'salicylic acid',
+    'ceramide', 'panthenol', 'tocopherol', 'ascorbic acid', 'kojic acid',
+    'arbutin', 'alpha arbutin', 'azelaic acid', 'benzoyl peroxide'
+  ];
   
-  // Check first 8 lines for potential product titles (titles are usually at top)
-  for (let i = 0; i < Math.min(8, cleanLines.length); i++) {
-    const line = cleanLines[i];
+  const cosmeticKeywords = [
+    'serum', 'cream', 'lotion', 'moisturizer', 'cleanser', 'toner', 'essence',
+    'treatment', 'anti-aging', 'anti aging', 'wrinkle', 'acne', 'brightening',
+    'whitening', 'hydrating', 'exfoliating', 'sunscreen', 'spf', 'facial',
+    'skincare', 'cosmetic', 'beauty', 'dermatology', 'dermatologist'
+  ];
+  
+  // Check for cosmetic ingredients and keywords
+  const cosmeticIngredientCount = cosmeticIngredients.filter(ing => 
+    lowerText.includes(ing)
+  ).length;
+  
+  const cosmeticKeywordCount = cosmeticKeywords.filter(keyword => 
+    lowerText.includes(keyword)
+  ).length;
+  
+  if (cosmeticIngredientCount >= 3 || cosmeticKeywordCount >= 1) {
+    productType = "Cosmetic Product";
+    category = "Cosmetic Product - Skincare";
     
-    // Skip lines that are clearly not product titles
-    if (line.length < 3 || 
-        /^[0-9\s%$.,]+$/.test(line) || // Only numbers/symbols
-        /^\d+\s*(mg|g|oz|ml|fl|calories|kcal|serving|net|weight)\b/i.test(line) || // Nutrition info
-        /^(nutrition|ingredients|calories|serving|net|weight|contains|allergen|distributed|manufactured)\b/i.test(line.toLowerCase()) ||
-        line.length > 60) { // Too long to be a title
-      continue;
-    }
-    
-    // Calculate title likelihood score
-    let titleScore = 0;
-    
-    // Higher score for lines near the top (titles appear first)
-    titleScore += (8 - i) * 2;
-    
-    // Higher score for mixed case formatting (proper title capitalization)
-    if (/[a-z]/.test(line) && /[A-Z]/.test(line)) titleScore += 4;
-    
-    // Higher score for reasonable title length (most product names are 8-40 chars)
-    if (line.length >= 8 && line.length <= 40) titleScore += 5;
-    
-    // Higher score for containing letters with some numbers (variants, sizes)
-    if (/[a-zA-Z]/.test(line) && /\d/.test(line)) titleScore += 3;
-    
-    // Lower score for too many special characters
-    const specialChars = (line.match(/[^a-zA-Z0-9\s]/g) || []).length;
-    if (specialChars > 3) titleScore -= 2;
-    
-    // Higher score for common product title words
-    const titleWords = ['original', 'classic', 'special', 'premium', 'organic', 'natural', 'whole', 'extra', 'light', 'reduced'];
-    if (titleWords.some(word => line.toLowerCase().includes(word))) titleScore += 3;
-    
-    // Add to candidates if score meets threshold
-    if (titleScore > 4) {
-      titleCandidates.push({ text: line, score: titleScore, position: i });
+    // Detect specific cosmetic product types
+    if (lowerText.includes('serum')) {
+      productName = "Skincare Serum";
+      category = "Cosmetic Product - Serum";
+    } else if (lowerText.includes('cream') || lowerText.includes('moisturizer')) {
+      productName = "Moisturizing Cream";
+      category = "Cosmetic Product - Moisturizer";
+    } else if (lowerText.includes('cleanser')) {
+      productName = "Facial Cleanser";
+      category = "Cosmetic Product - Cleanser";
+    } else if (lowerText.includes('toner')) {
+      productName = "Facial Toner";
+      category = "Cosmetic Product - Toner";
+    } else if (lowerText.includes('niacinamide')) {
+      productName = "Niacinamide Treatment";
+      category = "Cosmetic Product - Treatment";
+    } else {
+      productName = "Skincare Product";
     }
   }
   
-  // Sort title candidates by score (highest first)
-  titleCandidates.sort((a, b) => b.score - a.score);
+  // PRIORITY 2: Advanced title detection for all product types
+  const titleCandidates = [];
+  const cleanLines = lines.map(line => line.trim()).filter(line => line.length > 0);
+  
+  // Only do title detection if we haven't identified a cosmetic product by ingredients
+  if (productType === "Food Product") {
+    // Check first 8 lines for potential product titles (titles are usually at top)
+    for (let i = 0; i < Math.min(8, cleanLines.length); i++) {
+      const line = cleanLines[i];
+      
+      // Skip lines that are clearly not product titles
+      if (line.length < 3 || 
+          /^[0-9\s%$.,]+$/.test(line) || // Only numbers/symbols
+          /^\d+\s*(mg|g|oz|ml|fl|calories|kcal|serving|net|weight)\b/i.test(line) || // Nutrition info
+          /^(nutrition|ingredients|calories|serving|net|weight|contains|allergen|distributed|manufactured)\b/i.test(line.toLowerCase()) ||
+          line.length > 60) { // Too long to be a title
+        continue;
+      }
+      
+      // Calculate title likelihood score
+      let titleScore = 0;
+      
+      // Higher score for lines near the top (titles appear first)
+      titleScore += (8 - i) * 2;
+      
+      // Higher score for mixed case formatting (proper title capitalization)
+      if (/[a-z]/.test(line) && /[A-Z]/.test(line)) titleScore += 4;
+      
+      // Higher score for reasonable title length (most product names are 8-40 chars)
+      if (line.length >= 8 && line.length <= 40) titleScore += 5;
+      
+      // Higher score for containing letters with some numbers (variants, sizes)
+      if (/[a-zA-Z]/.test(line) && /\d/.test(line)) titleScore += 3;
+      
+      // Lower score for too many special characters
+      const specialChars = (line.match(/[^a-zA-Z0-9\s]/g) || []).length;
+      if (specialChars > 3) titleScore -= 2;
+      
+      // Higher score for common product title words
+      const titleWords = ['original', 'classic', 'special', 'premium', 'organic', 'natural', 'whole', 'extra', 'light', 'reduced'];
+      if (titleWords.some(word => line.toLowerCase().includes(word))) titleScore += 3;
+      
+      // Add to candidates if score meets threshold
+      if (titleScore > 4) {
+        titleCandidates.push({ text: line, score: titleScore, position: i });
+      }
+    }
+    
+    // Sort title candidates by score (highest first)
+    titleCandidates.sort((a, b) => b.score - a.score);
+  }
   
   // Comprehensive brand detection patterns with enhanced title matching
   const brandPatterns = [
@@ -527,10 +582,19 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
   
   // Generate enhanced contextual summary with category and usage instructions
   let summary = "";
-  let category = "Food Product"; // Default category
   
-  // Determine product category and specific usage
-  if (productType === "Breakfast Cereal") {
+  // Determine product category and specific usage based on detected product type
+  if (productType === "Cosmetic Product") {
+    if (category.includes('Serum')) {
+      summary = `**Category:** ${category} | **Use:** Apply 2-3 drops to clean face, gently pat until absorbed. **Purpose:** Delivers concentrated active ingredients for targeted skin concerns and improvement. **Instructions:** Use morning/evening after cleansing, follow with moisturizer and SPF during day. **Benefits:** Improves skin texture, tone, and addresses specific skin issues with potent formulation.`;
+    } else if (category.includes('Treatment')) {
+      summary = `**Category:** ${category} | **Use:** Apply thin layer to affected areas after cleansing. **Purpose:** Provides therapeutic benefits for specific skin conditions and concerns. **Instructions:** Start with every other day, gradually increase frequency as skin tolerates. **Benefits:** Targets specific skin issues with active ingredients for visible improvement.`;
+    } else if (category.includes('Moisturizer')) {
+      summary = `**Category:** ${category} | **Use:** Apply evenly to face and neck after cleansing and treatments. **Purpose:** Hydrates and protects skin barrier while providing essential moisture. **Instructions:** Use twice daily, morning and evening, as final skincare step before SPF. **Benefits:** Maintains skin hydration, improves texture, and supports healthy skin barrier function.`;
+    } else {
+      summary = `**Category:** ${category} | **Use:** Apply to clean skin as directed on packaging. **Purpose:** Provides skincare benefits and improves skin condition with specialized formulation. **Instructions:** Patch test before first use, follow product guidelines for frequency. **Benefits:** Enhances skin appearance and health through targeted skincare ingredients.`;
+    }
+  } else if (productType === "Breakfast Cereal") {
     category = "Food Product - Breakfast Cereal";
     if (productName.toLowerCase().includes('special k')) {
       summary = "**Category:** Breakfast Cereal | **Use:** Pour 3/4 cup cereal into bowl, add 1/2 cup cold milk, enjoy immediately. **Purpose:** Low-fat breakfast option providing essential vitamins and minerals for weight management and daily nutrition. **Instructions:** Best consumed in the morning as part of balanced diet. **Benefits:** Supports active lifestyle with protein and fiber content.";
@@ -546,14 +610,12 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
   } else if (productType === "Snacks" || productType === "Crackers" || productType === "Cookies") {
     category = "Food Product - Snack";
     summary = `**Category:** ${category} | **Use:** Consume in moderation as snack between meals. **Purpose:** Satisfying snack option for hunger management and taste enjoyment. **Instructions:** Eat recommended serving size, pair with healthy options like fruits. **Benefits:** Convenient snacking with portion control awareness.`;
-  } else if (productName.toLowerCase().includes('cream') || productName.toLowerCase().includes('lotion') || productName.toLowerCase().includes('serum')) {
-    category = "Cosmetic Product";
-    summary = `**Category:** ${category} | **Use:** Apply thin layer to clean skin, massage gently until absorbed. **Purpose:** Skin care and beauty enhancement with targeted benefits. **Instructions:** Use as directed, avoid contact with eyes, patch test before first use. **Benefits:** Improves skin condition and appearance with regular use.`;
   } else if (productName.toLowerCase().includes('medicine') || productName.toLowerCase().includes('tablet') || productName.toLowerCase().includes('capsule')) {
     category = "Medication/Supplement";
     summary = `**Category:** ${category} | **Use:** Take as prescribed by healthcare provider or label instructions. **Purpose:** Health management and therapeutic benefits for specific conditions. **Instructions:** Follow dosage guidelines, take with water, consult doctor for concerns. **Benefits:** Supports health goals with active pharmaceutical ingredients.`;
   } else {
-    summary = `**Category:** ${productType} | **Use:** Follow product-specific instructions on packaging for proper usage. **Purpose:** Provides intended benefits based on product design and formulation. **Instructions:** Read all labels carefully, use as directed for optimal results. **Benefits:** Delivers intended functionality when used correctly according to guidelines.`;
+    if (!category) category = productType;
+    summary = `**Category:** ${category} | **Use:** Follow product-specific instructions on packaging for proper usage. **Purpose:** Provides intended benefits based on product design and formulation. **Instructions:** Read all labels carefully, use as directed for optimal results. **Benefits:** Delivers intended functionality when used correctly according to guidelines.`;
   }
   
   return {

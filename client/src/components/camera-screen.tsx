@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Camera, RotateCcw, Zap, Sparkles, Images } from "lucide-react";
+import { Camera, RotateCcw, Zap, Sparkles, Images, Loader2 } from "lucide-react";
 import { useCamera } from "@/hooks/use-camera";
 import { useToast } from "@/hooks/use-toast";
 
@@ -14,6 +14,7 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
   const { toast } = useToast();
   const [isCapturing, setIsCapturing] = useState(false);
   const [permissionRequested, setPermissionRequested] = useState(false);
+  const [isStartingCamera, setIsStartingCamera] = useState(false);
 
   // Don't auto-start camera - wait for user permission
   useEffect(() => {
@@ -27,12 +28,20 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
         description: error,
         variant: "destructive",
       });
+      setIsStartingCamera(false);
     }
   }, [error, toast]);
 
   const handleRequestCameraPermission = async () => {
     setPermissionRequested(true);
-    await startCamera();
+    setIsStartingCamera(true);
+    try {
+      await startCamera();
+    } catch (err) {
+      console.error('Camera start failed:', err);
+    } finally {
+      setIsStartingCamera(false);
+    }
   };
 
   const handleCapture = async () => {
@@ -115,9 +124,12 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
                 </>
               ) : (
                 <>
-                  <p className="text-muted-foreground text-sm px-4">
-                    {error ? error : "Starting camera..."}
-                  </p>
+                  <div className="flex items-center justify-center space-x-2">
+                    <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+                    <p className="text-muted-foreground text-sm px-4">
+                      {error ? error : isStartingCamera ? "Initializing camera..." : "Starting camera..."}
+                    </p>
+                  </div>
                   {error && (
                     <Button 
                       onClick={handleGalleryClick}
@@ -217,6 +229,8 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
             ? "Grant camera permission to start scanning" 
             : isStreaming 
             ? "Point camera at product label" 
+            : isStartingCamera
+            ? "Camera starting..."
             : "Preparing camera..."}
         </p>
       </div>

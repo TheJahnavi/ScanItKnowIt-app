@@ -36,7 +36,24 @@ export function useCamera() {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          setIsStreaming(true);
+          
+          // Wait for video to be ready before setting streaming to true
+          await new Promise<void>((resolve) => {
+            const video = videoRef.current!;
+            const handleLoadedMetadata = () => {
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              setIsStreaming(true);
+              resolve();
+            };
+            
+            if (video.readyState >= 1) {
+              // Video is already ready
+              setIsStreaming(true);
+              resolve();
+            } else {
+              video.addEventListener('loadedmetadata', handleLoadedMetadata);
+            }
+          });
         }
       } catch (specificErr) {
         // Try with basic constraints if specific ones fail
@@ -50,7 +67,24 @@ export function useCamera() {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
-          setIsStreaming(true);
+          
+          // Wait for video to be ready before setting streaming to true
+          await new Promise<void>((resolve) => {
+            const video = videoRef.current!;
+            const handleLoadedMetadata = () => {
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              setIsStreaming(true);
+              resolve();
+            };
+            
+            if (video.readyState >= 1) {
+              // Video is already ready
+              setIsStreaming(true);
+              resolve();
+            } else {
+              video.addEventListener('loadedmetadata', handleLoadedMetadata);
+            }
+          });
         }
       }
     } catch (err) {
@@ -86,9 +120,24 @@ export function useCamera() {
     setIsStreaming(false);
   }, []);
 
-  const switchCamera = useCallback(() => {
-    setFacingMode(prev => prev === "user" ? "environment" : "user");
-  }, []);
+  const switchCamera = useCallback(async () => {
+    const newFacingMode = facingMode === "user" ? "environment" : "user";
+    setFacingMode(newFacingMode);
+    
+    // Restart camera with new facing mode
+    if (isStreaming) {
+      setIsStreaming(false);
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      
+      // Wait a bit for cleanup
+      setTimeout(async () => {
+        await startCamera();
+      }, 100);
+    }
+  }, [facingMode, isStreaming, startCamera]);
 
   const capturePhoto = useCallback((): Promise<Blob> => {
     return new Promise((resolve, reject) => {

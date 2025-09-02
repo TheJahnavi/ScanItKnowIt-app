@@ -415,76 +415,102 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
   let ingredients = "";
   let ingredientsList: string[] = [];
   
-  // Multiple strategies to find ingredients in OCR text
-  
-  // Strategy 1: Look for explicit "Ingredients:" or "Ingrédients:" label (multilingual)
-  const ingredientMatch = text.match(/in[gré]*dients?[\s\/]*[:\s]+([^.\n\r]+(?:[.\n\r][^.\n\r]+)*)/i);
+  // Strategy 1: Look for explicit "Ingredients:" or "Ingrédients:" label and capture multi-line content
+  const ingredientMatch = text.match(/in[gré]*dients?[\s\/]*[:\s]+([\s\S]*?)(?=\n\n|\n[A-Z]{2,}|$)/i);
   if (ingredientMatch) {
     ingredients = ingredientMatch[1].trim();
     console.log('Found ingredients with explicit label:', ingredients);
   }
   
-  // Strategy 2: For cosmetic products, look for AQUA/WATER as starting point
+  // Strategy 2: For cosmetic products, find AQUA/WATER and capture everything after it (enhanced)
   if (!ingredients && productType === "Cosmetic Product") {
-    for (const line of lines) {
-      const lowerLine = line.toLowerCase().trim();
-      if (lowerLine.includes('aqua') || (lowerLine.includes('water') && lowerLine.includes(','))) {
-        // This line likely contains cosmetic ingredients
-        ingredients = line;
-        console.log('Found cosmetic ingredients starting with AQUA/WATER:', ingredients);
-        break;
+    // Find line with AQUA or WATER that looks like an ingredient list start
+    const aquaLineIndex = lines.findIndex(line => {
+      const lowerLine = line.toLowerCase();
+      return (lowerLine.includes('aqua') || lowerLine.includes('water')) && 
+             (line.includes(',') || line.length > 30); // More likely to be ingredient list
+    });
+    
+    if (aquaLineIndex !== -1) {
+      // Capture this line and all subsequent lines that contain ingredients
+      const ingredientLines = [lines[aquaLineIndex]];
+      
+      // Look for continuation lines with enhanced detection
+      for (let i = aquaLineIndex + 1; i < lines.length && i < aquaLineIndex + 15; i++) {
+        const line = lines[i].trim();
+        if (line.length < 2) continue; // Skip very short lines
+        
+        const lowerLine = line.toLowerCase();
+        
+        // Stop if we hit clear section breaks
+        if (/^(directions?|warnings?|caution|net\s*wt|net\s*weight|size|made\s*in|distributed|manufactured|exp|lot|batch|use\s*by)/i.test(line)) {
+          break;
+        }
+        
+        // Include lines that contain ingredient patterns
+        const hasCommas = line.includes(',');
+        const hasIngredientTerms = ['gum', 'oil', 'acid', 'glycol', 'peg', 'ppg', 'phenoxy', 'chlor', 'extract', 'buteth', 'cetyl', 'stearyl', 'palmitate'].some(term => lowerLine.includes(term));
+        const hasCapitalizedWords = /[A-Z]{2,}/.test(line) && !/^[A-Z\s-]+$/.test(line); // Mixed case indicating ingredients
+        const isLikelyIngredient = hasCommas || hasIngredientTerms || hasCapitalizedWords;
+        
+        if (isLikelyIngredient && line.length > 5) {
+          ingredientLines.push(line);
+        } else if (!hasCommas && !hasIngredientTerms && line.length < 20) {
+          // Short line without obvious ingredient markers - might be end of ingredients
+          break;
+        }
       }
+      
+      ingredients = ingredientLines.join(' ').replace(/\s+/g, ' ').trim();
+      console.log('Found cosmetic ingredients starting with AQUA/WATER:', ingredients);
     }
   }
   
-  // Strategy 3: Look for lines that contain common ingredient patterns
+  // Strategy 3: Enhanced fallback pattern matching
   if (!ingredients) {
     const potentialIngredientLines = [];
+    let foundIngredientSection = false;
     
-    for (const line of lines) {
-      const lowerLine = line.toLowerCase().trim();
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i].trim();
+      const lowerLine = line.toLowerCase();
       
-      // Skip nutrition/calorie lines
+      // Skip clearly non-ingredient lines
       if (lowerLine.includes('nutrition') || lowerLine.includes('calories') || 
-          lowerLine.includes('serving') || /^\d+\s*(mg|g|oz|ml|fl|kcal)/.test(lowerLine)) {
+          lowerLine.includes('serving') || /^\d+\s*(mg|g|oz|ml|fl|kcal)/.test(lowerLine) ||
+          lowerLine.includes('directions') || lowerLine.includes('warning') ||
+          lowerLine.includes('net wt') || lowerLine.includes('best by')) {
         continue;
       }
       
-      // Look for lines with comma-separated items (typical ingredient format)
-      if (line.includes(',') && line.split(',').length >= 3) {
-        potentialIngredientLines.push(line);
-      }
+      // Look for lines that are likely ingredients
+      const hasMultipleCommas = (line.match(/,/g) || []).length >= 2;
+      const hasCosmedicIngredients = ['aqua', 'water', 'glycol', 'phenoxyethanol', 'gum', 'zinc', 'niacinamide', 'acid', 'oil', 'glycerin', 'dimethicone'].some(ing => lowerLine.includes(ing));
+      const hasChemicalNames = /\b[A-Z]{2,}[A-Z\s-]*\b/.test(line) && line.length > 15;
       
-      // Look for lines with common food/cosmetic ingredients
-      const commonIngredients = ['wheat', 'rice', 'corn', 'sugar', 'salt', 'oil', 'flour', 
-                                'milk', 'egg', 'soy', 'vitamin', 'mineral', 'extract', 
-                                'flavor', 'acid', 'powder', 'starch', 'protein',
-                                'aqua', 'water', 'glycol', 'phenoxyethanol', 'gum'];
-      
-      if (commonIngredients.some(ing => lowerLine.includes(ing)) && 
-          !lowerLine.includes('nutrition') && !lowerLine.includes('facts') &&
-          line.length > 20) { // Ensure it's a substantial line
+      // Mark as ingredient line if it meets criteria
+      if ((hasMultipleCommas || hasCosmedicIngredients || hasChemicalNames) && line.length > 15) {
         potentialIngredientLines.push(line);
+        foundIngredientSection = true;
+      } else if (foundIngredientSection && line.length < 10) {
+        // Short line after finding ingredients might indicate end
+        break;
       }
     }
     
-    // Use the longest potential ingredient line (usually most complete)
+    // Combine all potential ingredient lines
     if (potentialIngredientLines.length > 0) {
-      ingredients = potentialIngredientLines.reduce((longest, current) => 
-        current.length > longest.length ? current : longest
-      );
-      console.log('Found ingredients from common patterns:', ingredients);
+      ingredients = potentialIngredientLines.join(' ').replace(/\s+/g, ' ').trim();
+      console.log('Found ingredients from enhanced pattern matching:', ingredients);
     }
   }
   
-  // Strategy 4: Look for any line with parentheses (often contains ingredient info)
+  // Strategy 4: Final fallback - look for any line with many commas
   if (!ingredients) {
     for (const line of lines) {
-      if (line.includes('(') && line.includes(')') && line.length > 15 &&
-          !line.toLowerCase().includes('nutrition') && 
-          !line.toLowerCase().includes('calories')) {
-        ingredients = line;
-        console.log('Found ingredients from parentheses pattern:', ingredients);
+      if ((line.match(/,/g) || []).length >= 4 && line.length > 30) {
+        ingredients = line.trim();
+        console.log('Found ingredients from comma-heavy line:', ingredients);
         break;
       }
     }
@@ -498,14 +524,40 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
       .replace(/[()\[\]]/g, '') // Remove brackets
       .trim();
     
-    // Split by common delimiters
-    ingredientsList = ingredients
-      .split(/[,;]/) // Split by comma or semicolon
-      .map(item => item.trim())
-      .filter(item => item.length > 1 && !item.match(/^\d+$/) && item.length < 50) // Remove empty, numbers, too long
-      .slice(0, 20); // Limit to 20 ingredients for display
+    // Enhanced splitting to capture all ingredients with multiple strategies
+    let rawIngredients = [];
     
-    console.log('Parsed ingredients list:', ingredientsList);
+    // Try comma splitting first
+    if (ingredients.includes(',')) {
+      rawIngredients = ingredients.split(',');
+    }
+    // Try semicolon splitting if no commas
+    else if (ingredients.includes(';')) {
+      rawIngredients = ingredients.split(';');
+    }
+    // Try space splitting for all-caps ingredient lists
+    else if (/^[A-Z\s-]+$/.test(ingredients)) {
+      rawIngredients = ingredients.split(/\s{2,}|\s-\s/);
+    }
+    // Fallback to splitting by multiple spaces
+    else {
+      rawIngredients = ingredients.split(/\s{2,}/);
+    }
+    
+    // Clean and filter ingredients
+    ingredientsList = rawIngredients
+      .map(item => item.trim())
+      .filter(item => {
+        return item.length > 1 && 
+               !item.match(/^\d+$/) && 
+               item.length < 100 && 
+               !item.toLowerCase().includes('contains') &&
+               !item.toLowerCase().includes('may contain') &&
+               !/^(and|or|in|with|from)$/i.test(item);
+      })
+      .slice(0, 30); // Increased to 30 ingredients for comprehensive capture
+    
+    console.log('Enhanced parsed ingredients list:', ingredientsList);
   }
   
   // If we have a parsed list but no ingredients string, recreate it

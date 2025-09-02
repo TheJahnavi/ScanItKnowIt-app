@@ -22,6 +22,7 @@ export interface SugarType {
 
 export interface NutritionData {
   calories: number;
+  protein: string;
   totalSugars: string;
   sugarTypes: SugarType[];
 }

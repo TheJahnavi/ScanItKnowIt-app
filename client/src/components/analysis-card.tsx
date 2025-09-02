@@ -274,20 +274,24 @@ function IngredientsContent({ data }: { data: IngredientsData }) {
 function NutritionContent({ data }: { data: NutritionData }) {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-secondary p-4 rounded-xl text-center">
-          <div className="text-2xl font-bold text-primary">{data.calories || "N/A"}</div>
-          <div className="text-xs text-muted-foreground">Calories per serving</div>
+      <div className="grid grid-cols-3 gap-3">
+        <div className="bg-secondary p-3 rounded-xl text-center">
+          <div className="text-xl font-bold text-primary">{data.calories || "N/A"}</div>
+          <div className="text-xs text-muted-foreground">Calories</div>
         </div>
-        <div className="bg-secondary p-4 rounded-xl text-center">
-          <div className="text-2xl font-bold text-orange-600">{data.totalSugars || "N/A"}</div>
-          <div className="text-xs text-muted-foreground">Total sugars</div>
+        <div className="bg-secondary p-3 rounded-xl text-center">
+          <div className="text-xl font-bold text-orange-600">{data.totalSugars || "N/A"}</div>
+          <div className="text-xs text-muted-foreground">Total Sugars</div>
+        </div>
+        <div className="bg-secondary p-3 rounded-xl text-center">
+          <div className="text-xl font-bold text-blue-600">{data.protein || "N/A"}</div>
+          <div className="text-xs text-muted-foreground">Protein</div>
         </div>
       </div>
       
       {data.sugarTypes && data.sugarTypes.length > 0 && (
         <div className="space-y-2">
-          <h4 className="font-medium text-sm">Sugar Types</h4>
+          <h4 className="font-medium text-sm">Sugar Types & Nutritional Breakdown</h4>
           <div className="space-y-2">
             {data.sugarTypes.map((sugar, index) => (
               <div key={index} className="flex justify-between text-sm p-2 bg-secondary rounded-lg">
@@ -298,6 +302,12 @@ function NutritionContent({ data }: { data: NutritionData }) {
           </div>
         </div>
       )}
+      
+      <div className="mt-3 p-3 bg-muted rounded-lg">
+        <p className="text-xs text-muted-foreground">
+          Nutritional values per serving. Individual needs may vary based on age, gender, and activity level. Consult packaging for complete nutrition facts.
+        </p>
+      </div>
     </div>
   );
 }

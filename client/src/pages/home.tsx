@@ -434,32 +434,126 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
       .slice(0, 15); // Limit to 15 ingredients for display
   }
   
-  // Extract nutrition facts
+  // Enhanced nutrition facts extraction with comprehensive parsing
   let nutrition = "";
-  const caloriesMatch = text.match(/(\d+)\s*calories?/i);
-  const fatMatch = text.match(/total\s*fat[:\s]*(\d+(?:\.\d+)?)\s*g/i);
-  const carbMatch = text.match(/total\s*carb[\w\s]*[:\s]*(\d+(?:\.\d+)?)\s*g/i);
-  const proteinMatch = text.match(/protein[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+  let nutritionData = {
+    calories: null,
+    totalFat: null,
+    carbohydrates: null,
+    protein: null,
+    sugars: {
+      total: null,
+      added: null,
+      types: []
+    }
+  };
   
-  if (caloriesMatch || fatMatch || carbMatch || proteinMatch) {
+  // Extract calories
+  const caloriesMatch = text.match(/(\d+)\s*calories?/i);
+  if (caloriesMatch) {
+    nutritionData.calories = parseInt(caloriesMatch[1]);
+  }
+  
+  // Extract macronutrients
+  const fatMatch = text.match(/total\s*fat[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+  if (fatMatch) {
+    nutritionData.totalFat = `${fatMatch[1]}g`;
+  }
+  
+  const carbMatch = text.match(/total\s*carb[\w\s]*[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+  if (carbMatch) {
+    nutritionData.carbohydrates = `${carbMatch[1]}g`;
+  }
+  
+  const proteinMatch = text.match(/protein[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+  if (proteinMatch) {
+    nutritionData.protein = `${proteinMatch[1]}g`;
+  }
+  
+  // Enhanced sugar extraction
+  const totalSugarsMatch = text.match(/total\s*sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i) ||
+                          text.match(/sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+  if (totalSugarsMatch) {
+    nutritionData.sugars.total = `${totalSugarsMatch[1]}g`;
+  }
+  
+  const addedSugarsMatch = text.match(/added\s*sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+  if (addedSugarsMatch) {
+    nutritionData.sugars.added = `${addedSugarsMatch[1]}g`;
+  }
+  
+  // Look for specific sugar types
+  const sugarTypes = [];
+  if (text.match(/high\s*fructose\s*corn\s*syrup|hfcs/i)) {
+    sugarTypes.push({ type: "High Fructose Corn Syrup", amount: "varies" });
+  }
+  if (text.match(/corn\s*syrup/i)) {
+    sugarTypes.push({ type: "Corn Syrup", amount: "varies" });
+  }
+  if (text.match(/cane\s*sugar|sugar\s*cane/i)) {
+    sugarTypes.push({ type: "Cane Sugar", amount: "varies" });
+  }
+  if (text.match(/dextrose/i)) {
+    sugarTypes.push({ type: "Dextrose", amount: "varies" });
+  }
+  if (text.match(/fructose/i)) {
+    sugarTypes.push({ type: "Fructose", amount: "varies" });
+  }
+  if (text.match(/glucose/i)) {
+    sugarTypes.push({ type: "Glucose", amount: "varies" });
+  }
+  if (text.match(/sucrose/i)) {
+    sugarTypes.push({ type: "Sucrose", amount: "varies" });
+  }
+  if (text.match(/honey/i)) {
+    sugarTypes.push({ type: "Honey", amount: "varies" });
+  }
+  if (text.match(/maple\s*syrup/i)) {
+    sugarTypes.push({ type: "Maple Syrup", amount: "varies" });
+  }
+  
+  nutritionData.sugars.types = sugarTypes;
+  
+  // Build nutrition summary text
+  if (nutritionData.calories || nutritionData.totalFat || nutritionData.carbohydrates || nutritionData.protein) {
     const parts = [];
-    if (caloriesMatch) parts.push(`Calories ${caloriesMatch[1]}`);
-    if (fatMatch) parts.push(`Total Fat ${fatMatch[1]}g`);
-    if (carbMatch) parts.push(`Total Carbohydrates ${carbMatch[1]}g`);
-    if (proteinMatch) parts.push(`Protein ${proteinMatch[1]}g`);
+    if (nutritionData.calories) parts.push(`Calories ${nutritionData.calories}`);
+    if (nutritionData.totalFat) parts.push(`Total Fat ${nutritionData.totalFat}`);
+    if (nutritionData.carbohydrates) parts.push(`Total Carbohydrates ${nutritionData.carbohydrates}`);
+    if (nutritionData.protein) parts.push(`Protein ${nutritionData.protein}`);
+    if (nutritionData.sugars.total) parts.push(`Total Sugars ${nutritionData.sugars.total}`);
     nutrition = parts.join(', ');
   }
   
-  // Generate contextual summary based on detected product
+  // Generate enhanced contextual summary with category and usage instructions
   let summary = "";
-  if (productName.toLowerCase().includes('special k')) {
-    summary = "Kellogg's Special K is a crispy rice and wheat cereal that's part of a balanced breakfast. Made with essential vitamins and minerals, it provides a light yet satisfying start to your day. Low in fat and a good source of protein, it's designed for those seeking a nutritious breakfast option that supports an active lifestyle.";
-  } else if (productType === "Breakfast Cereal") {
-    summary = `${productName} is a breakfast cereal that provides essential nutrition to start your day. Made with grains and fortified with vitamins and minerals, it can be part of a balanced breakfast when combined with milk and fresh fruit.`;
-  } else if (productType === "Granola Bar") {
-    summary = `${productName} is a convenient snack bar that provides energy for active lifestyles. Made with wholesome ingredients, it's ideal for on-the-go nutrition and can fuel your daily activities.`;
+  let category = "Food Product"; // Default category
+  
+  // Determine product category and specific usage
+  if (productType === "Breakfast Cereal") {
+    category = "Food Product - Breakfast Cereal";
+    if (productName.toLowerCase().includes('special k')) {
+      summary = "**Category:** Breakfast Cereal | **Use:** Pour 3/4 cup cereal into bowl, add 1/2 cup cold milk, enjoy immediately. **Purpose:** Low-fat breakfast option providing essential vitamins and minerals for weight management and daily nutrition. **Instructions:** Best consumed in the morning as part of balanced diet. **Benefits:** Supports active lifestyle with protein and fiber content.";
+    } else {
+      summary = `**Category:** ${category} | **Use:** Pour recommended serving into bowl with cold milk. **Purpose:** Provides essential morning nutrition with grains and fortified vitamins. **Instructions:** Consume as breakfast with milk, can add fresh fruit for enhanced nutrition. **Benefits:** Sustained energy and essential nutrients for daily activities.`;
+    }
+  } else if (productType === "Granola Bar" || productType === "Snack Bar") {
+    category = "Food Product - Snack/Energy Bar";
+    summary = `**Category:** ${category} | **Use:** Consume directly from wrapper as on-the-go snack. **Purpose:** Provides quick energy and nutrition for active lifestyles and between meals. **Instructions:** Eat 1 bar per serving, ideal before/after exercise or as meal replacement. **Benefits:** Convenient portable nutrition with wholesome ingredients.`;
+  } else if (productType === "Beverage") {
+    category = "Food Product - Beverage";
+    summary = `**Category:** ${category} | **Use:** Serve chilled, shake well before consumption if required. **Purpose:** Hydration and refreshment with flavor enhancement. **Instructions:** Best served cold, consume within recommended timeframe after opening. **Benefits:** Refreshing taste with potential nutritional additions.`;
+  } else if (productType === "Snacks" || productType === "Crackers" || productType === "Cookies") {
+    category = "Food Product - Snack";
+    summary = `**Category:** ${category} | **Use:** Consume in moderation as snack between meals. **Purpose:** Satisfying snack option for hunger management and taste enjoyment. **Instructions:** Eat recommended serving size, pair with healthy options like fruits. **Benefits:** Convenient snacking with portion control awareness.`;
+  } else if (productName.toLowerCase().includes('cream') || productName.toLowerCase().includes('lotion') || productName.toLowerCase().includes('serum')) {
+    category = "Cosmetic Product";
+    summary = `**Category:** ${category} | **Use:** Apply thin layer to clean skin, massage gently until absorbed. **Purpose:** Skin care and beauty enhancement with targeted benefits. **Instructions:** Use as directed, avoid contact with eyes, patch test before first use. **Benefits:** Improves skin condition and appearance with regular use.`;
+  } else if (productName.toLowerCase().includes('medicine') || productName.toLowerCase().includes('tablet') || productName.toLowerCase().includes('capsule')) {
+    category = "Medication/Supplement";
+    summary = `**Category:** ${category} | **Use:** Take as prescribed by healthcare provider or label instructions. **Purpose:** Health management and therapeutic benefits for specific conditions. **Instructions:** Follow dosage guidelines, take with water, consult doctor for concerns. **Benefits:** Supports health goals with active pharmaceutical ingredients.`;
   } else {
-    summary = `${productName} is a food product that provides nutrition and can be part of a balanced diet. Based on the packaging analysis, it appears to be a ${productType.toLowerCase()} with various ingredients that contribute to its nutritional profile.`;
+    summary = `**Category:** ${productType} | **Use:** Follow product-specific instructions on packaging for proper usage. **Purpose:** Provides intended benefits based on product design and formulation. **Instructions:** Read all labels carefully, use as directed for optimal results. **Benefits:** Delivers intended functionality when used correctly according to guidelines.`;
   }
   
   return {
@@ -470,6 +564,8 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
       ingredients: ingredients || "Please check product packaging for complete ingredient list",
       ingredientsList: ingredientsList.length > 0 ? ingredientsList : null, // Add parsed ingredients list
       nutrition: nutrition || "Please check product packaging for nutrition facts",
+      nutritionData: nutritionData, // Add detailed nutrition data
+      category: category, // Add product category
       brand,
       productType,
       allText: text

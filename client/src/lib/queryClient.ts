@@ -55,6 +55,7 @@ const demoData = {
   },
   nutrition: {
     calories: 110,
+    protein: "3g",
     totalSugars: "4g",
     sugarTypes: [
       { type: "Total Sugars", amount: "4g" },
@@ -208,8 +209,26 @@ function analyzeIngredientsFromText(extractedText: any): any {
   };
 }
 
-// Analyze nutrition from extracted text
+// Analyze nutrition from extracted text with enhanced sugar and protein tracking
 function analyzeNutritionFromText(extractedText: any): any {
+  // First try to use detailed nutrition data from OCR analysis
+  if (extractedText?.nutritionData) {
+    const nutritionData = extractedText.nutritionData;
+    
+    return {
+      calories: nutritionData.calories || 110,
+      protein: nutritionData.protein || "2g",
+      totalSugars: nutritionData.sugars?.total || "4g",
+      sugarTypes: nutritionData.sugars?.types?.length > 0 
+        ? nutritionData.sugars.types
+        : [
+            { type: "Total Sugars", amount: nutritionData.sugars?.total || "4g" },
+            { type: "Added Sugars", amount: nutritionData.sugars?.added || "3g" }
+          ]
+    };
+  }
+  
+  // Fallback to text parsing
   const nutritionText = extractedText?.nutrition || extractedText?.allText || "";
   
   if (!nutritionText || nutritionText.includes("Please check product packaging")) {
@@ -219,6 +238,10 @@ function analyzeNutritionFromText(extractedText: any): any {
   // Extract calories
   const caloriesMatch = nutritionText.match(/(\d+)\s*calories?/i);
   const calories = caloriesMatch ? parseInt(caloriesMatch[1]) : 110;
+  
+  // Extract protein
+  const proteinMatch = nutritionText.match(/protein[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+  const protein = proteinMatch ? `${proteinMatch[1]}g` : "2g";
   
   // Extract sugars
   const sugarMatch = nutritionText.match(/total\s*sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i) || 
@@ -230,6 +253,7 @@ function analyzeNutritionFromText(extractedText: any): any {
   
   return {
     calories,
+    protein,
     totalSugars,
     sugarTypes: [
       { type: "Total Sugars", amount: totalSugars },

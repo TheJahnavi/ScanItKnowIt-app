@@ -40,27 +40,50 @@ export function ChatInterface({ analysisId, productName }: ChatInterfaceProps) {
         return response.json();
       } catch (error) {
         // Demo chat responses for static deployment
-        console.log('Using demo chat response');
+        console.log('Using dynamic chat response based on current analysis');
         
         // Simulate API delay
         await new Promise(resolve => setTimeout(resolve, 1500));
         
-        // Generate contextual responses based on message content
+        // Get current analysis data
+        const currentAnalysis = sessionStorage.getItem('currentAnalysis');
+        let extractedText = null;
+        let currentProductName = productName || 'this product';
+        
+        if (currentAnalysis) {
+          const analysis = JSON.parse(currentAnalysis);
+          extractedText = analysis.extractedText;
+          currentProductName = analysis.productName || currentProductName;
+        }
+        
+        // Generate contextual responses based on message content and extracted data
         let demoResponse = "";
         const lowerMessage = message.toLowerCase();
         
         if (lowerMessage.includes('ingredient') || lowerMessage.includes('contain')) {
-          demoResponse = `${productName || 'This product'} contains whole grain oats, sugar, canola oil, rice flour, honey, brown sugar syrup, salt, and natural flavors. The main ingredients are whole grains which provide fiber and sustained energy. The sugar content is moderate, so it's best enjoyed as part of a balanced diet.`;
+          if (extractedText?.ingredients && !extractedText.ingredients.includes('Please check')) {
+            demoResponse = `${currentProductName} contains: ${extractedText.ingredients}. Based on the ingredient analysis, most components are generally safe, though items with added sugars should be consumed in moderation as part of a balanced diet.`;
+          } else {
+            demoResponse = `${currentProductName} contains various ingredients. The main ingredients typically include grains, vitamins, and minerals. For the complete and most accurate ingredient list, please check the product packaging directly.`;
+          }
         } else if (lowerMessage.includes('calorie') || lowerMessage.includes('nutrition')) {
-          demoResponse = `${productName || 'This product'} contains 190 calories per serving (2 bars). It provides 4g of protein, 32g of carbohydrates including 11g of sugars, and 6g of fat. It's a good source of energy for active lifestyles but should be consumed in moderation due to the sugar content.`;
+          if (extractedText?.nutrition && !extractedText.nutrition.includes('Please check')) {
+            demoResponse = `${currentProductName} nutrition facts: ${extractedText.nutrition}. This provides essential nutrients and energy for your daily activities. Consider this as part of your overall daily nutritional intake.`;
+          } else {
+            demoResponse = `${currentProductName} provides essential nutrients and calories. For specific nutritional information including calories, fats, carbohydrates, and protein content, please refer to the nutrition facts panel on the product packaging.`;
+          }
         } else if (lowerMessage.includes('health') || lowerMessage.includes('safe')) {
-          demoResponse = `${productName || 'This product'} is generally safe for most people. The whole grain oats provide beneficial fiber and nutrients. However, it does contain added sugars, so those monitoring sugar intake should be mindful. It's free from major allergens but check the packaging for any 'may contain' warnings.`;
+          demoResponse = `${currentProductName} is generally safe for most people when consumed as part of a balanced diet. However, if you have specific allergies or dietary restrictions, always check the ingredient list and allergen information on the packaging. Consult with a healthcare provider for personalized dietary advice.`;
         } else if (lowerMessage.includes('diet') || lowerMessage.includes('weight')) {
-          demoResponse = `For weight management, ${productName || 'this product'} can be part of a balanced diet when consumed in moderation. At 190 calories per serving, it's a substantial snack. The fiber and protein can help with satiety, but the sugar content means it's best enjoyed post-workout or as an occasional treat rather than a daily snack.`;
+          if (currentProductName.toLowerCase().includes('special k')) {
+            demoResponse = `${currentProductName} can be part of a weight management plan when consumed in appropriate portions. It's designed to be lower in calories while providing essential nutrients. Combine with a balanced diet and regular exercise for best results.`;
+          } else {
+            demoResponse = `${currentProductName} can fit into various dietary plans when consumed in moderation. Consider the calorie content and nutritional profile in relation to your daily dietary goals and overall caloric intake.`;
+          }
         } else if (lowerMessage.includes('exercise') || lowerMessage.includes('workout')) {
-          demoResponse = `${productName || 'This product'} is excellent for exercise fuel! The combination of complex carbs from oats and quick energy from sugars makes it ideal for pre-workout energy or post-workout recovery. Many athletes use these bars for hiking, cycling, and endurance activities.`;
+          demoResponse = `${currentProductName} can provide energy for physical activities. The carbohydrates can fuel your workouts, while any protein content supports muscle function. Timing of consumption around exercise depends on your specific fitness goals and the product's nutritional profile.`;
         } else {
-          demoResponse = `${productName || 'This product'} is a nutritious granola bar made with whole grain oats and natural sweeteners. It provides sustained energy and is convenient for on-the-go nutrition. For specific questions about ingredients, nutrition, or health considerations, I can provide detailed information based on the product analysis.`;
+          demoResponse = `${currentProductName} is a food product that can be part of a balanced diet. For specific questions about ingredients, nutrition, health considerations, or dietary fit, I can provide information based on general nutritional principles and the product analysis. What specific aspect would you like to know more about?`;
         }
         
         return {

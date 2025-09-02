@@ -13,11 +13,12 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
   const { videoRef, isStreaming, error, startCamera, stopCamera, switchCamera, capturePhoto } = useCamera();
   const { toast } = useToast();
   const [isCapturing, setIsCapturing] = useState(false);
+  const [permissionRequested, setPermissionRequested] = useState(false);
 
+  // Don't auto-start camera - wait for user permission
   useEffect(() => {
-    startCamera();
     return () => stopCamera();
-  }, [startCamera, stopCamera]);
+  }, [stopCamera]);
 
   useEffect(() => {
     if (error) {
@@ -28,6 +29,11 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
       });
     }
   }, [error, toast]);
+
+  const handleRequestCameraPermission = async () => {
+    setPermissionRequested(true);
+    await startCamera();
+  };
 
   const handleCapture = async () => {
     if (isCapturing) return;
@@ -78,18 +84,51 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-secondary flex items-center justify-center">
             <div className="text-center space-y-4">
               <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
-              <p className="text-muted-foreground text-sm px-4">
-                {error ? error : "Starting camera..."}
-              </p>
-              {error && (
-                <Button 
-                  onClick={handleGalleryClick}
-                  className="bg-primary hover:bg-primary/90"
-                  data-testid="button-upload-fallback"
-                >
-                  <Images className="h-4 w-4 mr-2" />
-                  Upload Photo Instead
-                </Button>
+              {!permissionRequested ? (
+                <>
+                  <div className="space-y-2">
+                    <h3 className="text-lg font-semibold text-foreground">Camera Access Required</h3>
+                    <p className="text-muted-foreground text-sm px-4">
+                      Allow camera access to scan product labels and get instant AI-powered analysis
+                    </p>
+                  </div>
+                  <div className="flex flex-col space-y-3">
+                    <Button 
+                      onClick={handleRequestCameraPermission}
+                      className="bg-primary hover:bg-primary/90 text-primary-foreground"
+                      data-testid="button-allow-camera"
+                    >
+                      <Camera className="h-4 w-4 mr-2" />
+                      Allow Camera Access
+                    </Button>
+                    <div className="text-xs text-muted-foreground">or</div>
+                    <Button 
+                      onClick={handleGalleryClick}
+                      variant="outline"
+                      className="border-border"
+                      data-testid="button-upload-instead"
+                    >
+                      <Images className="h-4 w-4 mr-2" />
+                      Upload Photo Instead
+                    </Button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="text-muted-foreground text-sm px-4">
+                    {error ? error : "Starting camera..."}
+                  </p>
+                  {error && (
+                    <Button 
+                      onClick={handleGalleryClick}
+                      className="bg-primary hover:bg-primary/90"
+                      data-testid="button-upload-fallback"
+                    >
+                      <Images className="h-4 w-4 mr-2" />
+                      Upload Photo Instead
+                    </Button>
+                  )}
+                </>
               )}
             </div>
           </div>
@@ -162,7 +201,9 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
         {/* AI Scan Mode */}
         <Button
           size="lg"
+          variant="outline"
           className="w-14 h-14 rounded-xl"
+          disabled={!isStreaming}
           data-testid="button-ai-scan"
         >
           <Sparkles className="h-6 w-6" />
@@ -172,7 +213,11 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
       {/* Status Indicator */}
       <div className="text-center">
         <p className="text-muted-foreground text-sm" data-testid="text-status">
-          Point camera at product label
+          {!permissionRequested 
+            ? "Grant camera permission to start scanning" 
+            : isStreaming 
+            ? "Point camera at product label" 
+            : "Preparing camera..."}
         </p>
       </div>
     </div>

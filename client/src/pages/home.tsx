@@ -411,19 +411,33 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
     }
   }
   
-  // Enhanced ingredient extraction with comprehensive parsing
+  // Enhanced ingredient extraction with comprehensive parsing for cosmetic products
   let ingredients = "";
-  let ingredientsList = [];
+  let ingredientsList: string[] = [];
   
   // Multiple strategies to find ingredients in OCR text
   
-  // Strategy 1: Look for explicit "Ingredients:" label
-  const ingredientMatch = text.match(/ingredients?[:\s]+([^.\n\r]+(?:[.\n\r][^.\n\r]+)*)/i);
+  // Strategy 1: Look for explicit "Ingredients:" or "Ingrédients:" label (multilingual)
+  const ingredientMatch = text.match(/in[gré]*dients?[\s\/]*[:\s]+([^.\n\r]+(?:[.\n\r][^.\n\r]+)*)/i);
   if (ingredientMatch) {
     ingredients = ingredientMatch[1].trim();
+    console.log('Found ingredients with explicit label:', ingredients);
   }
   
-  // Strategy 2: Look for lines that contain common ingredient patterns
+  // Strategy 2: For cosmetic products, look for AQUA/WATER as starting point
+  if (!ingredients && productType === "Cosmetic Product") {
+    for (const line of lines) {
+      const lowerLine = line.toLowerCase().trim();
+      if (lowerLine.includes('aqua') || (lowerLine.includes('water') && lowerLine.includes(','))) {
+        // This line likely contains cosmetic ingredients
+        ingredients = line;
+        console.log('Found cosmetic ingredients starting with AQUA/WATER:', ingredients);
+        break;
+      }
+    }
+  }
+  
+  // Strategy 3: Look for lines that contain common ingredient patterns
   if (!ingredients) {
     const potentialIngredientLines = [];
     
@@ -441,10 +455,11 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
         potentialIngredientLines.push(line);
       }
       
-      // Look for lines with common food ingredients
+      // Look for lines with common food/cosmetic ingredients
       const commonIngredients = ['wheat', 'rice', 'corn', 'sugar', 'salt', 'oil', 'flour', 
                                 'milk', 'egg', 'soy', 'vitamin', 'mineral', 'extract', 
-                                'flavor', 'acid', 'powder', 'starch', 'protein'];
+                                'flavor', 'acid', 'powder', 'starch', 'protein',
+                                'aqua', 'water', 'glycol', 'phenoxyethanol', 'gum'];
       
       if (commonIngredients.some(ing => lowerLine.includes(ing)) && 
           !lowerLine.includes('nutrition') && !lowerLine.includes('facts') &&
@@ -458,16 +473,18 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
       ingredients = potentialIngredientLines.reduce((longest, current) => 
         current.length > longest.length ? current : longest
       );
+      console.log('Found ingredients from common patterns:', ingredients);
     }
   }
   
-  // Strategy 3: Look for any line with parentheses (often contains ingredient info)
+  // Strategy 4: Look for any line with parentheses (often contains ingredient info)
   if (!ingredients) {
     for (const line of lines) {
       if (line.includes('(') && line.includes(')') && line.length > 15 &&
           !line.toLowerCase().includes('nutrition') && 
           !line.toLowerCase().includes('calories')) {
         ingredients = line;
+        console.log('Found ingredients from parentheses pattern:', ingredients);
         break;
       }
     }
@@ -477,7 +494,7 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
   if (ingredients) {
     // Clean up the ingredients text
     ingredients = ingredients
-      .replace(/^ingredients?[:\s]*/i, '') // Remove "Ingredients:" prefix
+      .replace(/^in[gré]*dients?[\s\/]*[:\s]*/i, '') // Remove "Ingredients:" prefix
       .replace(/[()\[\]]/g, '') // Remove brackets
       .trim();
     
@@ -485,13 +502,30 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
     ingredientsList = ingredients
       .split(/[,;]/) // Split by comma or semicolon
       .map(item => item.trim())
-      .filter(item => item.length > 1 && !item.match(/^\d+$/)) // Remove empty items and standalone numbers
-      .slice(0, 15); // Limit to 15 ingredients for display
+      .filter(item => item.length > 1 && !item.match(/^\d+$/) && item.length < 50) // Remove empty, numbers, too long
+      .slice(0, 20); // Limit to 20 ingredients for display
+    
+    console.log('Parsed ingredients list:', ingredientsList);
   }
   
-  // Enhanced nutrition facts extraction with comprehensive parsing
+  // If we have a parsed list but no ingredients string, recreate it
+  if (ingredientsList.length > 0 && !ingredients) {
+    ingredients = ingredientsList.join(', ');
+  }
+  
+  // Enhanced nutrition facts extraction with cosmetic product handling
   let nutrition = "";
-  let nutritionData = {
+  let nutritionData: {
+    calories: number | string | null,
+    totalFat: string | null,
+    carbohydrates: string | null,
+    protein: string | null,
+    sugars: {
+      total: string | null,
+      added: string | null,
+      types: { type: string; amount: string; }[]
+    }
+  } = {
     calories: null,
     totalFat: null,
     carbohydrates: null,
@@ -503,81 +537,99 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
     }
   };
   
-  // Extract calories
-  const caloriesMatch = text.match(/(\d+)\s*calories?/i);
-  if (caloriesMatch) {
-    nutritionData.calories = parseInt(caloriesMatch[1]);
-  }
-  
-  // Extract macronutrients
-  const fatMatch = text.match(/total\s*fat[:\s]*(\d+(?:\.\d+)?)\s*g/i);
-  if (fatMatch) {
-    nutritionData.totalFat = `${fatMatch[1]}g`;
-  }
-  
-  const carbMatch = text.match(/total\s*carb[\w\s]*[:\s]*(\d+(?:\.\d+)?)\s*g/i);
-  if (carbMatch) {
-    nutritionData.carbohydrates = `${carbMatch[1]}g`;
-  }
-  
-  const proteinMatch = text.match(/protein[:\s]*(\d+(?:\.\d+)?)\s*g/i);
-  if (proteinMatch) {
-    nutritionData.protein = `${proteinMatch[1]}g`;
-  }
-  
-  // Enhanced sugar extraction
-  const totalSugarsMatch = text.match(/total\s*sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i) ||
-                          text.match(/sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i);
-  if (totalSugarsMatch) {
-    nutritionData.sugars.total = `${totalSugarsMatch[1]}g`;
-  }
-  
-  const addedSugarsMatch = text.match(/added\s*sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i);
-  if (addedSugarsMatch) {
-    nutritionData.sugars.added = `${addedSugarsMatch[1]}g`;
-  }
-  
-  // Look for specific sugar types
-  const sugarTypes = [];
-  if (text.match(/high\s*fructose\s*corn\s*syrup|hfcs/i)) {
-    sugarTypes.push({ type: "High Fructose Corn Syrup", amount: "varies" });
-  }
-  if (text.match(/corn\s*syrup/i)) {
-    sugarTypes.push({ type: "Corn Syrup", amount: "varies" });
-  }
-  if (text.match(/cane\s*sugar|sugar\s*cane/i)) {
-    sugarTypes.push({ type: "Cane Sugar", amount: "varies" });
-  }
-  if (text.match(/dextrose/i)) {
-    sugarTypes.push({ type: "Dextrose", amount: "varies" });
-  }
-  if (text.match(/fructose/i)) {
-    sugarTypes.push({ type: "Fructose", amount: "varies" });
-  }
-  if (text.match(/glucose/i)) {
-    sugarTypes.push({ type: "Glucose", amount: "varies" });
-  }
-  if (text.match(/sucrose/i)) {
-    sugarTypes.push({ type: "Sucrose", amount: "varies" });
-  }
-  if (text.match(/honey/i)) {
-    sugarTypes.push({ type: "Honey", amount: "varies" });
-  }
-  if (text.match(/maple\s*syrup/i)) {
-    sugarTypes.push({ type: "Maple Syrup", amount: "varies" });
-  }
-  
-  nutritionData.sugars.types = sugarTypes;
-  
-  // Build nutrition summary text
-  if (nutritionData.calories || nutritionData.totalFat || nutritionData.carbohydrates || nutritionData.protein) {
-    const parts = [];
-    if (nutritionData.calories) parts.push(`Calories ${nutritionData.calories}`);
-    if (nutritionData.totalFat) parts.push(`Total Fat ${nutritionData.totalFat}`);
-    if (nutritionData.carbohydrates) parts.push(`Total Carbohydrates ${nutritionData.carbohydrates}`);
-    if (nutritionData.protein) parts.push(`Protein ${nutritionData.protein}`);
-    if (nutritionData.sugars.total) parts.push(`Total Sugars ${nutritionData.sugars.total}`);
-    nutrition = parts.join(', ');
+  // Skip nutrition analysis for cosmetic products
+  if (productType === "Cosmetic Product") {
+    nutrition = "Not applicable for cosmetic products";
+    nutritionData = {
+      calories: "N/A",
+      totalFat: "N/A",
+      carbohydrates: "N/A",
+      protein: "N/A",
+      sugars: {
+        total: "N/A",
+        added: "N/A",
+        types: [{ type: "Cosmetic Product", amount: "No nutritional content" }]
+      }
+    };
+  } else {
+    // Extract nutrition for food products only
+    
+    // Extract calories
+    const caloriesMatch = text.match(/(\d+)\s*calories?/i);
+    if (caloriesMatch) {
+      nutritionData.calories = parseInt(caloriesMatch[1]);
+    }
+    
+    // Extract macronutrients
+    const fatMatch = text.match(/total\s*fat[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+    if (fatMatch) {
+      nutritionData.totalFat = `${fatMatch[1]}g`;
+    }
+    
+    const carbMatch = text.match(/total\s*carb[\w\s]*[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+    if (carbMatch) {
+      nutritionData.carbohydrates = `${carbMatch[1]}g`;
+    }
+    
+    const proteinMatch = text.match(/protein[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+    if (proteinMatch) {
+      nutritionData.protein = `${proteinMatch[1]}g`;
+    }
+    
+    // Enhanced sugar extraction
+    const totalSugarsMatch = text.match(/total\s*sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i) ||
+                            text.match(/sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+    if (totalSugarsMatch) {
+      nutritionData.sugars.total = `${totalSugarsMatch[1]}g`;
+    }
+    
+    const addedSugarsMatch = text.match(/added\s*sugar[s]?[:\s]*(\d+(?:\.\d+)?)\s*g/i);
+    if (addedSugarsMatch) {
+      nutritionData.sugars.added = `${addedSugarsMatch[1]}g`;
+    }
+    
+    // Look for specific sugar types
+    const sugarTypes = [];
+    if (text.match(/high\s*fructose\s*corn\s*syrup|hfcs/i)) {
+      sugarTypes.push({ type: "High Fructose Corn Syrup", amount: "varies" });
+    }
+    if (text.match(/corn\s*syrup/i)) {
+      sugarTypes.push({ type: "Corn Syrup", amount: "varies" });
+    }
+    if (text.match(/cane\s*sugar|sugar\s*cane/i)) {
+      sugarTypes.push({ type: "Cane Sugar", amount: "varies" });
+    }
+    if (text.match(/dextrose/i)) {
+      sugarTypes.push({ type: "Dextrose", amount: "varies" });
+    }
+    if (text.match(/fructose/i)) {
+      sugarTypes.push({ type: "Fructose", amount: "varies" });
+    }
+    if (text.match(/glucose/i)) {
+      sugarTypes.push({ type: "Glucose", amount: "varies" });
+    }
+    if (text.match(/sucrose/i)) {
+      sugarTypes.push({ type: "Sucrose", amount: "varies" });
+    }
+    if (text.match(/honey/i)) {
+      sugarTypes.push({ type: "Honey", amount: "varies" });
+    }
+    if (text.match(/maple\s*syrup/i)) {
+      sugarTypes.push({ type: "Maple Syrup", amount: "varies" });
+    }
+    
+    nutritionData.sugars.types = sugarTypes;
+    
+    // Build nutrition summary text
+    if (nutritionData.calories || nutritionData.totalFat || nutritionData.carbohydrates || nutritionData.protein) {
+      const parts = [];
+      if (nutritionData.calories) parts.push(`Calories ${nutritionData.calories}`);
+      if (nutritionData.totalFat) parts.push(`Total Fat ${nutritionData.totalFat}`);
+      if (nutritionData.carbohydrates) parts.push(`Total Carbohydrates ${nutritionData.carbohydrates}`);
+      if (nutritionData.protein) parts.push(`Protein ${nutritionData.protein}`);
+      if (nutritionData.sugars.total) parts.push(`Total Sugars ${nutritionData.sugars.total}`);
+      nutrition = parts.join(', ');
+    }
   }
   
   // Generate enhanced contextual summary with category and usage instructions

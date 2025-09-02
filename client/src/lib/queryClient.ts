@@ -77,16 +77,40 @@ const demoData = {
   }
 };
 
-// Analyze ingredients from extracted text
+// Analyze ingredients from extracted text with enhanced parsing
 function analyzeIngredientsFromText(extractedText: any): any {
-  const ingredientsText = extractedText?.ingredients || extractedText?.allText || "";
+  let ingredientsList = [];
   
-  if (!ingredientsText || ingredientsText.includes("Please check product packaging")) {
-    return demoData.ingredients;
+  // First try to use the parsed ingredients list from OCR analysis
+  if (extractedText?.ingredientsList && extractedText.ingredientsList.length > 0) {
+    ingredientsList = extractedText.ingredientsList;
+  }
+  // Fallback to parsing the ingredients text
+  else if (extractedText?.ingredients && !extractedText.ingredients.includes("Please check product packaging")) {
+    const ingredientsText = extractedText.ingredients;
+    ingredientsList = ingredientsText
+      .split(/[,;]/) // Split by comma or semicolon
+      .map((ing: string) => ing.trim())
+      .filter((ing: string) => ing.length > 1 && !ing.match(/^\d+$/)); // Remove empty items and standalone numbers
+  }
+  // Final fallback to full text parsing
+  else if (extractedText?.allText) {
+    const allText = extractedText.allText;
+    // Look for ingredient patterns in the full text
+    const ingredientMatch = allText.match(/ingredients?[:\s]+([^.\n\r]+)/i);
+    if (ingredientMatch) {
+      const ingredientsText = ingredientMatch[1].trim();
+      ingredientsList = ingredientsText
+        .split(/[,;]/)
+        .map((ing: string) => ing.trim())
+        .filter((ing: string) => ing.length > 1 && !ing.match(/^\d+$/));
+    }
   }
   
-  // Parse ingredients and analyze safety
-  const ingredientsList = ingredientsText.split(',').map((ing: string) => ing.trim()).filter((ing: string) => ing.length > 0);
+  // If no ingredients found, return demo data
+  if (ingredientsList.length === 0) {
+    return demoData.ingredients;
+  }
   
   const analyzedIngredients = ingredientsList.map((ingredient: string) => {
     const cleanName = ingredient.replace(/[()\[\]]/g, '').trim();
@@ -173,14 +197,14 @@ function analyzeIngredientsFromText(extractedText: any): any {
     };
   });
   
-  // Sort by safety level for better visual organization
+  // Sort by safety level for better visual organization (Safe first, Harmful last)
   const sortedIngredients = analyzedIngredients.sort((a, b) => {
     const order = { "Safe": 0, "Moderate": 1, "Harmful": 2 };
     return order[a.safety as keyof typeof order] - order[b.safety as keyof typeof order];
   });
   
   return {
-    ingredients: sortedIngredients.slice(0, 12) // Limit to 12 ingredients for display
+    ingredients: sortedIngredients.slice(0, 20) // Increase limit to 20 ingredients for more comprehensive display
   };
 }
 

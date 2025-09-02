@@ -356,23 +356,82 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
     }
   }
   
-  // Extract ingredients
+  // Enhanced ingredient extraction with comprehensive parsing
   let ingredients = "";
-  const ingredientMatch = text.match(/ingredients?[:\s]+([^.\n]+)/i);
+  let ingredientsList = [];
+  
+  // Multiple strategies to find ingredients in OCR text
+  
+  // Strategy 1: Look for explicit "Ingredients:" label
+  const ingredientMatch = text.match(/ingredients?[:\s]+([^.\n\r]+(?:[.\n\r][^.\n\r]+)*)/i);
   if (ingredientMatch) {
     ingredients = ingredientMatch[1].trim();
-  } else {
-    // Look for ingredient-like patterns in lines
+  }
+  
+  // Strategy 2: Look for lines that contain common ingredient patterns
+  if (!ingredients) {
+    const potentialIngredientLines = [];
+    
     for (const line of lines) {
-      const lowerLine = line.toLowerCase();
-      if ((lowerLine.includes('wheat') || lowerLine.includes('rice') ||
-           lowerLine.includes('corn') || lowerLine.includes('sugar') ||
-           lowerLine.includes('salt') || lowerLine.includes('oil')) &&
-          !lowerLine.includes('nutrition') && !lowerLine.includes('calories')) {
+      const lowerLine = line.toLowerCase().trim();
+      
+      // Skip nutrition/calorie lines
+      if (lowerLine.includes('nutrition') || lowerLine.includes('calories') || 
+          lowerLine.includes('serving') || /^\d+\s*(mg|g|oz|ml|fl|kcal)/.test(lowerLine)) {
+        continue;
+      }
+      
+      // Look for lines with comma-separated items (typical ingredient format)
+      if (line.includes(',') && line.split(',').length >= 3) {
+        potentialIngredientLines.push(line);
+      }
+      
+      // Look for lines with common food ingredients
+      const commonIngredients = ['wheat', 'rice', 'corn', 'sugar', 'salt', 'oil', 'flour', 
+                                'milk', 'egg', 'soy', 'vitamin', 'mineral', 'extract', 
+                                'flavor', 'acid', 'powder', 'starch', 'protein'];
+      
+      if (commonIngredients.some(ing => lowerLine.includes(ing)) && 
+          !lowerLine.includes('nutrition') && !lowerLine.includes('facts') &&
+          line.length > 20) { // Ensure it's a substantial line
+        potentialIngredientLines.push(line);
+      }
+    }
+    
+    // Use the longest potential ingredient line (usually most complete)
+    if (potentialIngredientLines.length > 0) {
+      ingredients = potentialIngredientLines.reduce((longest, current) => 
+        current.length > longest.length ? current : longest
+      );
+    }
+  }
+  
+  // Strategy 3: Look for any line with parentheses (often contains ingredient info)
+  if (!ingredients) {
+    for (const line of lines) {
+      if (line.includes('(') && line.includes(')') && line.length > 15 &&
+          !line.toLowerCase().includes('nutrition') && 
+          !line.toLowerCase().includes('calories')) {
         ingredients = line;
         break;
       }
     }
+  }
+  
+  // Parse ingredients into individual items
+  if (ingredients) {
+    // Clean up the ingredients text
+    ingredients = ingredients
+      .replace(/^ingredients?[:\s]*/i, '') // Remove "Ingredients:" prefix
+      .replace(/[()\[\]]/g, '') // Remove brackets
+      .trim();
+    
+    // Split by common delimiters
+    ingredientsList = ingredients
+      .split(/[,;]/) // Split by comma or semicolon
+      .map(item => item.trim())
+      .filter(item => item.length > 1 && !item.match(/^\d+$/)) // Remove empty items and standalone numbers
+      .slice(0, 15); // Limit to 15 ingredients for display
   }
   
   // Extract nutrition facts
@@ -409,6 +468,7 @@ function analyzeExtractedText(text: string, fileName: string): ProductAnalysis {
     summary,
     extractedText: {
       ingredients: ingredients || "Please check product packaging for complete ingredient list",
+      ingredientsList: ingredientsList.length > 0 ? ingredientsList : null, // Add parsed ingredients list
       nutrition: nutrition || "Please check product packaging for nutrition facts",
       brand,
       productType,

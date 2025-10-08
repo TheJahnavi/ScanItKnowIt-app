@@ -1,4 +1,4 @@
-import express, { Express, Request, Response } from "express";
+import express, { Application, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { identifyProductAndExtractText, analyzeIngredients, analyzeNutrition, generateChatResponse } from "./services/openai";
@@ -17,7 +17,7 @@ const upload = multer({
   }
 });
 
-export async function registerRoutes(app: Express): Promise<Server | void> {
+export async function registerRoutes(app: Application): Promise<Server | void> {
   
   // Upload and analyze product image
   app.post("/api/analyze-product", upload.single('image'), async (req: MulterRequest, res: Response) => {
@@ -154,9 +154,9 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
 
   // For Vercel deployment, we don't need to create an HTTP server
   if (process.env.VERCEL) {
-    return undefined;
+    return Promise.resolve(undefined);
   }
 
   const httpServer = createServer(app);
-  return httpServer;
+  return Promise.resolve(httpServer);
 }

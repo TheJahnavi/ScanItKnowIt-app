@@ -14,8 +14,9 @@
     "outDir": "dist",
     "rootDir": ".",
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": false,
+    "allowJs": true,
+    "checkJs": false
   },
   "include": ["**/*"],
   "exclude": ["node_modules", "dist"]

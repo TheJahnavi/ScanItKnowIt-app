@@ -42,6 +42,7 @@ ScanItKnowIt/
      - `OPENROUTER_API_KEY` (required for AI features)
      - Database connection variables (if applicable)
      - Reddit API credentials (if applicable)
+     - `API_NINJAS_KEY` (if using API Ninjas services)
 
 5. **Deploy**
    - Vercel will automatically build and deploy your application
@@ -95,3 +96,4 @@ The backend provides the following API endpoints:
 - The backend is built using Express.js with TypeScript
 - Vercel Functions are used for serverless backend deployment
 - Static files are served through Vercel's CDN
+- All dependencies are properly configured for Vercel deployment

@@ -4,7 +4,8 @@
   "type": "module",
   "main": "index.ts",
   "scripts": {
-    "start": "node index.ts"
+    "start": "node index.ts",
+    "build": "echo 'No build needed for server'"
   },
   "dependencies": {
     "express": "^4.21.2",

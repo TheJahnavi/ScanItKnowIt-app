@@ -1,90 +1,67 @@
-import { type User, type InsertUser, type ProductAnalysis, type InsertProductAnalysis, type ChatMessage, type InsertChatMessage } from "@shared/schema";
-import { randomUUID } from "crypto";
+// Remove all DB-related imports and dependencies
+// This file now provides in-memory storage that doesn't persist data
 
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
-  createUser(user: InsertUser): Promise<User>;
+  // These methods are kept for interface compatibility but won't persist data
+  getUser(id: string): Promise<undefined>;
+  getUserByUsername(username: string): Promise<undefined>;
+  createUser(user: any): Promise<any>;
   
-  createProductAnalysis(analysis: InsertProductAnalysis): Promise<ProductAnalysis>;
-  getProductAnalysis(id: string): Promise<ProductAnalysis | undefined>;
-  updateProductAnalysis(id: string, updates: Partial<ProductAnalysis>): Promise<ProductAnalysis | undefined>;
+  createProductAnalysis(analysis: any): Promise<any>;
+  getProductAnalysis(id: string): Promise<undefined>;
+  updateProductAnalysis(id: string, updates: any): Promise<undefined>;
   
-  createChatMessage(message: InsertChatMessage): Promise<ChatMessage>;
-  getChatMessages(analysisId: string): Promise<ChatMessage[]>;
+  createChatMessage(message: any): Promise<any>;
+  getChatMessages(analysisId: string): Promise<any[]>;
 }
 
 export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-  private productAnalyses: Map<string, ProductAnalysis>;
-  private chatMessages: Map<string, ChatMessage>;
-
-  constructor() {
-    this.users = new Map();
-    this.productAnalyses = new Map();
-    this.chatMessages = new Map();
+  async getUser(id: string): Promise<undefined> {
+    return undefined;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
+  async getUserByUsername(username: string): Promise<undefined> {
+    return undefined;
   }
 
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async createUser(insertUser: any): Promise<any> {
+    // Return a mock user object without storing it
+    return { id: 'mock-user-id', ...insertUser };
   }
 
-  async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
-    return user;
-  }
-
-  async createProductAnalysis(analysis: InsertProductAnalysis): Promise<ProductAnalysis> {
-    const id = randomUUID();
-    const productAnalysis: ProductAnalysis = {
-      ...analysis,
-      id,
+  async createProductAnalysis(analysis: any): Promise<any> {
+    // Return the analysis object with a mock ID without storing it
+    return { 
+      id: 'mock-analysis-id',
       createdAt: new Date(),
       imageUrl: analysis.imageUrl || null,
       ingredientsData: analysis.ingredientsData || null,
       nutritionData: analysis.nutritionData || null,
       redditData: analysis.redditData || null,
+      ...analysis
     };
-    this.productAnalyses.set(id, productAnalysis);
-    return productAnalysis;
   }
 
-  async getProductAnalysis(id: string): Promise<ProductAnalysis | undefined> {
-    return this.productAnalyses.get(id);
+  async getProductAnalysis(id: string): Promise<undefined> {
+    return undefined;
   }
 
-  async updateProductAnalysis(id: string, updates: Partial<ProductAnalysis>): Promise<ProductAnalysis | undefined> {
-    const existing = this.productAnalyses.get(id);
-    if (!existing) return undefined;
-    
-    const updated = { ...existing, ...updates };
-    this.productAnalyses.set(id, updated);
-    return updated;
+  async updateProductAnalysis(id: string, updates: any): Promise<undefined> {
+    return undefined;
   }
 
-  async createChatMessage(message: InsertChatMessage): Promise<ChatMessage> {
-    const id = randomUUID();
-    const chatMessage: ChatMessage = {
-      ...message,
-      id,
+  async createChatMessage(message: any): Promise<any> {
+    // Return the message object with a mock ID without storing it
+    return { 
+      id: 'mock-message-id',
       createdAt: new Date(),
+      ...message
     };
-    this.chatMessages.set(id, chatMessage);
-    return chatMessage;
   }
 
-  async getChatMessages(analysisId: string): Promise<ChatMessage[]> {
-    return Array.from(this.chatMessages.values())
-      .filter(msg => msg.analysisId === analysisId)
-      .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  async getChatMessages(analysisId: string): Promise<any[]> {
+    // Return an empty array since we're not storing messages
+    return [];
   }
 }
 

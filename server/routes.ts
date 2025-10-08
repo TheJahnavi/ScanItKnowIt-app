@@ -3,7 +3,6 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { identifyProductAndExtractText, analyzeIngredients, analyzeNutrition, generateChatResponse } from "./services/openai";
 import { searchRedditReviews } from "./services/reddit";
-import { insertProductAnalysisSchema, insertChatMessageSchema } from "@shared/schema";
 import multer from "multer";
 
 const upload = multer({
@@ -27,7 +26,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
       // Initial AI processing
       const analysisResult = await identifyProductAndExtractText(base64Image);
       
-      // Create product analysis record
+      // Create product analysis record (in-memory only)
       const productAnalysis = await storage.createProductAnalysis({
         productName: analysisResult.productName,
         productSummary: analysisResult.summary,
@@ -55,24 +54,14 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   app.post("/api/analyze-ingredients/:analysisId", async (req, res) => {
     try {
       const { analysisId } = req.params;
-      const analysis = await storage.getProductAnalysis(analysisId);
       
-      if (!analysis) {
-        return res.status(404).json({ error: "Analysis not found" });
-      }
-
-      if (analysis.ingredientsData) {
-        return res.json(analysis.ingredientsData);
-      }
+      // Since we're not storing data, we need to get the analysis from the request body
+      // In a real implementation, the client would send the extracted text
+      const { extractedText } = req.body;
 
       // Analyze ingredients with AI
-      const ingredientsData = await analyzeIngredients(analysis.extractedText);
+      const ingredientsData = await analyzeIngredients(extractedText);
       
-      // Update analysis with ingredients data
-      await storage.updateProductAnalysis(analysisId, { 
-        ingredientsData 
-      });
-
       res.json(ingredientsData);
 
     } catch (error) {
@@ -85,24 +74,13 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   app.post("/api/analyze-nutrition/:analysisId", async (req, res) => {
     try {
       const { analysisId } = req.params;
-      const analysis = await storage.getProductAnalysis(analysisId);
       
-      if (!analysis) {
-        return res.status(404).json({ error: "Analysis not found" });
-      }
-
-      if (analysis.nutritionData) {
-        return res.json(analysis.nutritionData);
-      }
+      // Since we're not storing data, we need to get the analysis from the request body
+      const { extractedText } = req.body;
 
       // Analyze nutrition with AI
-      const nutritionData = await analyzeNutrition(analysis.extractedText);
+      const nutritionData = await analyzeNutrition(extractedText);
       
-      // Update analysis with nutrition data
-      await storage.updateProductAnalysis(analysisId, { 
-        nutritionData 
-      });
-
       res.json(nutritionData);
 
     } catch (error) {
@@ -115,24 +93,13 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   app.post("/api/analyze-reddit/:analysisId", async (req, res) => {
     try {
       const { analysisId } = req.params;
-      const analysis = await storage.getProductAnalysis(analysisId);
       
-      if (!analysis) {
-        return res.status(404).json({ error: "Analysis not found" });
-      }
-
-      if (analysis.redditData) {
-        return res.json(analysis.redditData);
-      }
+      // Since we're not storing data, we need to get the product name from the request body
+      const { productName } = req.body;
 
       // Search Reddit for reviews
-      const redditData = await searchRedditReviews(analysis.productName);
+      const redditData = await searchRedditReviews(productName);
       
-      // Update analysis with Reddit data
-      await storage.updateProductAnalysis(analysisId, { 
-        redditData 
-      });
-
       res.json(redditData);
 
     } catch (error) {
@@ -145,37 +112,19 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   app.post("/api/chat/:analysisId", async (req, res) => {
     try {
       const { analysisId } = req.params;
-      const { message } = req.body;
+      const { message, productData } = req.body;
 
       if (!message) {
         return res.status(400).json({ error: "Message is required" });
       }
 
-      const analysis = await storage.getProductAnalysis(analysisId);
-      
-      if (!analysis) {
-        return res.status(404).json({ error: "Analysis not found" });
-      }
-
       // Generate AI response
-      const aiResponse = await generateChatResponse(message, {
-        productName: analysis.productName,
-        extractedText: analysis.extractedText,
-        ingredientsData: analysis.ingredientsData,
-        nutritionData: analysis.nutritionData
-      });
-
-      // Save chat message
-      const chatMessage = await storage.createChatMessage({
-        analysisId,
-        message,
-        response: aiResponse
-      });
+      const aiResponse = await generateChatResponse(message, productData);
 
       res.json({
-        message: chatMessage.message,
-        response: chatMessage.response,
-        timestamp: chatMessage.createdAt
+        message: message,
+        response: aiResponse,
+        timestamp: new Date()
       });
 
     } catch (error) {
@@ -184,7 +133,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
     }
   });
 
-  // Get chat history
+  // Get chat history (returns empty array since we're not storing data)
   app.get("/api/chat/:analysisId", async (req, res) => {
     try {
       const { analysisId } = req.params;

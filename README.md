@@ -34,13 +34,11 @@ ScanItKnowIt/
    - Vercel will auto-detect the `vercel.json` and build both frontend/backend
    - Set environment variables in the Vercel dashboard:
      - `OPENROUTER_API_KEY`
-     - Database connection variables (if using PostgreSQL)
      - Reddit API credentials (if using Reddit integration)
 
 4. **Environment Variables**
    - In Vercel → **Project Settings** → **Environment Variables**, add:
      - `OPENROUTER_API_KEY` (required for AI features)
-     - Database connection variables (if applicable)
      - Reddit API credentials (if applicable)
      - `API_NINJAS_KEY` (if using API Ninjas services)
 
@@ -97,3 +95,4 @@ The backend provides the following API endpoints:
 - Vercel Functions are used for serverless backend deployment
 - Static files are served through Vercel's CDN
 - All dependencies are properly configured for Vercel deployment
+- Data is stored in client-side sessionStorage and automatically cleared on page refresh

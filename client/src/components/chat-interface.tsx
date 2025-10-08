@@ -15,28 +15,60 @@ export function ChatInterface({ analysisId, productName }: ChatInterfaceProps) {
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Get chat history from sessionStorage
+  const getChatHistory = () => {
+    const sessionId = sessionStorage.getItem('currentSessionId');
+    if (!sessionId) return [];
+    
+    const chatHistory = sessionStorage.getItem(`chat-history-${sessionId}`);
+    return chatHistory ? JSON.parse(chatHistory) : [];
+  };
+
+  // Save chat message to sessionStorage
+  const saveChatMessage = (message: any) => {
+    const sessionId = sessionStorage.getItem('currentSessionId');
+    if (!sessionId) return;
+    
+    const chatHistory = getChatHistory();
+    chatHistory.push(message);
+    
+    sessionStorage.setItem(`chat-history-${sessionId}`, JSON.stringify(chatHistory));
+  };
+
   const { data: chatHistory = [] } = useQuery({
     queryKey: [`/api/chat/${analysisId}`],
     enabled: !!analysisId,
     queryFn: async () => {
-      try {
-        const response = await fetch(`/api/chat/${analysisId}`);
-        if (!response.ok) {
-          throw new Error('Chat history not available');
-        }
-        return response.json();
-      } catch (error) {
-        // Return empty array for demo mode
-        console.log('Chat history not available in demo mode');
-        return [];
-      }
+      // Return chat history from sessionStorage
+      return getChatHistory();
     }
   });
 
   const sendMessageMutation = useMutation({
     mutationFn: async (message: string) => {
       try {
-        const response = await apiRequest("POST", `/api/chat/${analysisId}`, { message });
+        // Get current analysis data
+        const sessionId = sessionStorage.getItem('currentSessionId');
+        if (!sessionId) {
+          throw new Error("No session data found");
+        }
+        
+        const analysisData = sessionStorage.getItem(`analysis-${sessionId}`);
+        if (!analysisData) {
+          throw new Error("No analysis data found");
+        }
+        
+        const parsedAnalysis = JSON.parse(analysisData);
+        
+        const response = await apiRequest("POST", `/api/chat/${analysisId}`, { 
+          message,
+          productData: {
+            productName: parsedAnalysis.productName,
+            extractedText: parsedAnalysis.extractedText,
+            ingredientsData: parsedAnalysis.ingredientsData,
+            nutritionData: parsedAnalysis.nutritionData
+          }
+        });
         return response.json();
       } catch (error) {
         // Demo chat responses for static deployment
@@ -93,7 +125,10 @@ export function ChatInterface({ analysisId, productName }: ChatInterfaceProps) {
         };
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Save the new message to sessionStorage
+      saveChatMessage(data);
+      
       // Invalidate chat history to refetch
       queryClient.invalidateQueries({ queryKey: [`/api/chat/${analysisId}`] });
     },

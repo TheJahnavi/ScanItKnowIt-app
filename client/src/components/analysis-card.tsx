@@ -57,24 +57,43 @@ export function AnalysisCard({
   const config = cardConfig[type];
   const Icon = config.icon;
 
+  // Get the analysis data from sessionStorage
+  const getAnalysisData = () => {
+    const sessionId = sessionStorage.getItem('currentSessionId');
+    if (!sessionId) return null;
+    
+    const analysisData = sessionStorage.getItem(`analysis-${sessionId}`);
+    return analysisData ? JSON.parse(analysisData) : null;
+  };
+
   const fetchDataMutation = useMutation({
     mutationFn: async () => {
+      const analysisData = getAnalysisData();
+      if (!analysisData) {
+        throw new Error("No analysis data found");
+      }
+
       let endpoint = "";
+      let requestBody = {};
+      
       switch (type) {
         case "ingredients":
           endpoint = `/api/analyze-ingredients/${analysisId}`;
+          requestBody = { extractedText: analysisData.extractedText };
           break;
         case "calories":
           endpoint = `/api/analyze-nutrition/${analysisId}`;
+          requestBody = { extractedText: analysisData.extractedText };
           break;
         case "reddit":
           endpoint = `/api/analyze-reddit/${analysisId}`;
+          requestBody = { productName: analysisData.productName };
           break;
         default:
           throw new Error("Invalid card type");
       }
       
-      const response = await apiRequest("POST", endpoint);
+      const response = await apiRequest("POST", endpoint, requestBody);
       return response.json();
     },
     onSuccess: (result) => {

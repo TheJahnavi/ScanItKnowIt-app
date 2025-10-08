@@ -1,52 +1,62 @@
-import { sql } from "drizzle-orm";
-import { pgTable, text, varchar, json, timestamp, boolean } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
-import { z } from "zod";
+// Remove all DB-related imports and dependencies
+// This file now provides type definitions without database schema
 
-export const users = pgTable("users", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  username: text("username").notNull().unique(),
-  password: text("password").notNull(),
-});
+export interface User {
+  id: string;
+  username: string;
+  password: string;
+}
 
-export const productAnalyses = pgTable("product_analyses", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  productName: text("product_name").notNull(),
-  productSummary: text("product_summary").notNull(),
-  extractedText: json("extracted_text").notNull(),
-  imageUrl: text("image_url"),
-  ingredientsData: json("ingredients_data"),
-  nutritionData: json("nutrition_data"),
-  redditData: json("reddit_data"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface ProductAnalysis {
+  id: string;
+  productName: string;
+  productSummary: string;
+  extractedText: any;
+  imageUrl: string | null;
+  ingredientsData: any | null;
+  nutritionData: any | null;
+  redditData: any | null;
+  createdAt: Date;
+}
 
-export const chatMessages = pgTable("chat_messages", {
-  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
-  analysisId: varchar("analysis_id").references(() => productAnalyses.id).notNull(),
-  message: text("message").notNull(),
-  response: text("response").notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+export interface ChatMessage {
+  id: string;
+  analysisId: string;
+  message: string;
+  response: string;
+  createdAt: Date;
+}
 
-export const insertUserSchema = createInsertSchema(users).pick({
-  username: true,
-  password: true,
-});
+export interface InsertUser {
+  username: string;
+  password: string;
+}
 
-export const insertProductAnalysisSchema = createInsertSchema(productAnalyses).omit({
-  id: true,
-  createdAt: true,
-});
+export interface InsertProductAnalysis {
+  productName: string;
+  productSummary: string;
+  extractedText: any;
+  imageUrl?: string | null;
+  ingredientsData?: any | null;
+  nutritionData?: any | null;
+  redditData?: any | null;
+}
 
-export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
-  id: true,
-  createdAt: true,
-});
+export interface InsertChatMessage {
+  analysisId: string;
+  message: string;
+  response: string;
+}
 
-export type InsertUser = z.infer<typeof insertUserSchema>;
-export type User = typeof users.$inferSelect;
-export type ProductAnalysis = typeof productAnalyses.$inferSelect;
-export type InsertProductAnalysis = z.infer<typeof insertProductAnalysisSchema>;
-export type ChatMessage = typeof chatMessages.$inferSelect;
-export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+// Type guards
+export function isUser(obj: any): obj is User {
+  return obj && typeof obj.id === 'string' && typeof obj.username === 'string' && typeof obj.password === 'string';
+}
+
+export function isProductAnalysis(obj: any): obj is ProductAnalysis {
+  return obj && typeof obj.id === 'string' && typeof obj.productName === 'string' && typeof obj.productSummary === 'string';
+}
+
+export function isChatMessage(obj: any): obj is ChatMessage {
+  return obj && typeof obj.id === 'string' && typeof obj.analysisId === 'string' && typeof obj.message === 'string' && typeof obj.response === 'string';
+}

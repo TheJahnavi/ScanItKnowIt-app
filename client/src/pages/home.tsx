@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest } from "@/lib/queryClient";
@@ -10,6 +10,11 @@ import { Camera } from "lucide-react";
 import type { ProductAnalysis } from "@/types/analysis";
 
 type AppState = "camera" | "processing" | "analysis";
+
+// Clear sessionStorage on page load to ensure fresh state
+useEffect(() => {
+  sessionStorage.clear();
+}, []);
 
 // Client-side image analysis function with timeout and enhanced error handling
 async function performClientSideAnalysis(base64Image: string, fileName: string): Promise<ProductAnalysis> {
@@ -1041,7 +1046,9 @@ function analyzeImageVisually(base64Image: string, fileName: string): ProductAna
 }
 
 export default function Home() {
-  const [currentState, setCurrentState] = useState<AppState>("camera");
+  const [state, setState] = useState<AppState>("camera");
+  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedImageName, setCapturedImageName] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<ProductAnalysis | null>(null);
   const { toast } = useToast();
 
@@ -1084,7 +1091,7 @@ export default function Home() {
     },
     onSuccess: (data: ProductAnalysis) => {
       setAnalysis(data);
-      setCurrentState("analysis");
+      setState("analysis");
       
       // Store analysis data for use by analysis cards
       sessionStorage.setItem('currentAnalysis', JSON.stringify(data));
@@ -1095,7 +1102,7 @@ export default function Home() {
       });
     },
     onError: (error) => {
-      setCurrentState("camera");
+      setState("camera");
       toast({
         title: "Analysis Failed",
         description: "Failed to analyze the product. Please try again.",
@@ -1121,6 +1128,38 @@ export default function Home() {
     });
   };
 
+  // Modify the handleNewScan function to store data in sessionStorage
+  const handleNewScan = async () => {
+    if (!capturedImage) return;
+    
+    setState("processing");
+    
+    try {
+      // Convert image to base64
+      const base64Image = capturedImage.split(',')[1];
+      
+      // Process the image through OCR and AI analysis
+      const analysisResult = await performClientSideAnalysis(base64Image, capturedImageName);
+      
+      // Store the analysis result in sessionStorage
+      const sessionId = 'session-' + Date.now();
+      sessionStorage.setItem('currentSessionId', sessionId);
+      sessionStorage.setItem(`analysis-${sessionId}`, JSON.stringify(analysisResult));
+      
+      // Set the analysis data and switch to analysis view
+      setAnalysis(analysisResult);
+      setState("analysis");
+    } catch (error) {
+      console.error("Scan processing error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to process the scan. Please try again.",
+        variant: "destructive",
+      });
+      setState("camera");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background" data-testid="home-page">
       {/* Header */}
@@ -1139,19 +1178,24 @@ export default function Home() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-6 max-w-md">
-        {currentState === "camera" && (
+        {state === "camera" && (
           <CameraScreen
             onPhotoCapture={handlePhotoCapture}
             onGallerySelect={handleGallerySelect}
           />
         )}
 
-        {currentState === "processing" && <ProcessingScreen />}
+        {state === "processing" && <ProcessingScreen />}
 
-        {currentState === "analysis" && analysis && (
-          <AnalysisScreen
-            analysis={analysis}
-            onScanAnother={handleScanAnother}
+        {state === "analysis" && analysis && (
+          <AnalysisScreen 
+            analysis={analysis} 
+            onScanAnother={() => {
+              setState("camera");
+              setCapturedImage(null);
+              setAnalysis(null);
+              sessionStorage.clear(); // Clear session data when scanning another product
+            }} 
           />
         )}
       </main>

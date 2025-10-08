@@ -1,26 +1,23 @@
-import express, { Express, Request, Response } from 'express'; // Explicitly import types
+import express, { Express, Request, Response } from 'express';
 import path from 'node:path';
-import { registerRoutes } from './routes'; // Import route setup function
 
-// Explicitly type the Express app
 const app: Express = express();
+const PORT = process.env.PORT || 3001;
 
 // Add JSON middleware (required for req.body)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve client static files (verify path to client/dist)
-const clientDist = path.join(__dirname, '../client/dist'); // Adjust if client is nested deeper
-app.use(express.static(clientDist));
+// Correct path to client's dist directory (adjust based on your project structure)
+const clientDist = path.join(__dirname, '../client/dist'); // Example: If server is in project-root/server, client is in project-root/client
+console.log('Client dist path:', clientDist); // Log to validate during server startup
+app.use(express.static(clientDist)); // Serve client static files
 
 // Catch-all route to serve client's index.html (type req/res explicitly)
 app.get('*', (req: Request, res: Response) => {
-  // Ensure clientDist/index.html exists
+  // Ensure index.html exists in clientDist
   res.sendFile(path.join(clientDist, 'index.html'));
 });
-
-// Attach routes to the Express app (pass the typed app)
-registerRoutes(app);
 
 // Export the app for Vercel (required)
 export default app;

@@ -26,7 +26,8 @@
     },
     {
       "src": "/(.*)",
-      "dest": "client/dist/$1"
+      "dest": "client/dist/$1",
+      "status": 200
     }
   ]
 }

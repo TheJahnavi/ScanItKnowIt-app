@@ -7,7 +7,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["express"], // Include Express types
+    "types": ["node", "express"],
     "moduleResolution": "Node",
     "allowSyntheticDefaultImports": true,
     "removeComments": true,
@@ -17,6 +17,6 @@
     "allowImportingTsExtensions": true,
     "noEmit": true
   },
-  "include": ["**/*"], // Ensure all server files are included
+  "include": ["**/*"],
   "exclude": ["node_modules", "dist"]
 }

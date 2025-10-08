@@ -10,7 +10,7 @@ app.use(express.json()); // Parses JSON request bodies
 app.use(express.urlencoded({ extended: true })); // Parses form data
 
 // Serve client static files (verify path)
-const clientDist = path.join(__dirname, '../client/dist'); // Adjust if server/client are nested differently
+const clientDist = path.join(__dirname, '../../client/dist'); // Adjust path for Vercel environment
 console.log('Client dist path:', clientDist); // Log to validate during deployment
 app.use(express.static(clientDist));
 

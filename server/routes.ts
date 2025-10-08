@@ -5,6 +5,11 @@ import { identifyProductAndExtractText, analyzeIngredients, analyzeNutrition, ge
 import { searchRedditReviews } from "./services/reddit";
 import multer from "multer";
 
+// Extend Express Request type to include multer properties
+interface MulterRequest extends Request {
+  file?: Express.Multer.File;
+}
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
@@ -15,7 +20,7 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server | void> {
   
   // Upload and analyze product image
-  app.post("/api/analyze-product", upload.single('image'), async (req: Request, res: Response) => {
+  app.post("/api/analyze-product", upload.single('image'), async (req: MulterRequest, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });

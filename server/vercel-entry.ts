@@ -1,10 +1,12 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response } from "express";
 import { registerRoutes } from "./routes";
 import path from "path";
 
 const app: Express = express();
-app.use(express.json());
-app.use(express.urlencoded({ extended: false }));
+
+// Middleware for JSON parsing
+app.use(express.json()); // Parses JSON payloads (enables req.body)
+app.use(express.urlencoded({ extended: true })); // Parses form data
 
 // Register all routes
 registerRoutes(app);
@@ -18,7 +20,7 @@ if (process.env.NODE_ENV === "production") {
   app.use(express.static(distPath));
   
   // Catch-all route to serve index.html for client-side routing
-  app.get("*", (_req, res) => {
+  app.get("*", (req: Request, res: Response) => {
     res.sendFile(path.resolve(distPath, "index.html"));
   });
 }

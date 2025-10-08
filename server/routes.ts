@@ -13,7 +13,7 @@ const upload = multer({
   }
 });
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<Server | void> {
   
   // Upload and analyze product image
   app.post("/api/analyze-product", upload.single('image'), async (req, res) => {
@@ -197,6 +197,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get chat history" });
     }
   });
+
+  // For Vercel deployment, we don't need to create an HTTP server
+  if (process.env.VERCEL) {
+    return undefined;
+  }
 
   const httpServer = createServer(app);
   return httpServer;

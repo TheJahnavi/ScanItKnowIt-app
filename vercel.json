@@ -2,7 +2,6 @@
   "version": 2,
   "builds": [
     {
-      "id": "backend",
       "src": "server/index.ts",
       "use": "@vercel/node",
       "config": {
@@ -12,7 +11,6 @@
       }
     },
     {
-      "id": "frontend",
       "src": "client",
       "use": "@vercel/static-build",
       "config": {

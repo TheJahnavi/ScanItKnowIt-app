@@ -10,3 +10,8 @@ registerRoutes(app);
 
 // Export the app for Vercel
 export default app;
+export const config = {
+  api: {
+    bodyParser: true,
+  },
+};

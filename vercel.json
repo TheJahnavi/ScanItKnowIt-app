@@ -2,12 +2,12 @@
   "version": 2,
   "builds": [
     {
-      "src": "server/index.ts",
+      "src": "server/vercel-entry.ts",
       "use": "@vercel/node",
       "config": {
         "runtime": "nodejs20.x",
-        "buildCommand": "cd server && npm install",
-        "outputDirectory": "server"
+        "buildCommand": "cd server && npm install && npm run build",
+        "outputDirectory": "server/dist"
       }
     },
     {
@@ -22,7 +22,7 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/index.ts"
+      "dest": "server/vercel-entry.ts"
     },
     {
       "src": "/(.*)",

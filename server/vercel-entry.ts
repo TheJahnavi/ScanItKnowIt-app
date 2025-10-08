@@ -1,34 +1,26 @@
-import express, { type Express, type Request, type Response } from "express";
-import { registerRoutes } from "./routes";
-import path from "path";
+import express, { Express, Request, Response } from 'express'; // Explicitly import types
+import path from 'node:path';
+import { registerRoutes } from './routes'; // Import route setup function
 
+// Explicitly type the Express app
 const app: Express = express();
 
-// Middleware for JSON parsing
-app.use(express.json()); // Parses JSON payloads (enables req.body)
-app.use(express.urlencoded({ extended: true })); // Parses form data
+// Add JSON middleware (required for req.body)
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Register all routes
+// Serve client static files (verify path to client/dist)
+const clientDist = path.join(__dirname, '../client/dist'); // Adjust if client is nested deeper
+app.use(express.static(clientDist));
+
+// Catch-all route to serve client's index.html (type req/res explicitly)
+app.get('*', (req: Request, res: Response) => {
+  // Ensure clientDist/index.html exists
+  res.sendFile(path.join(clientDist, 'index.html'));
+});
+
+// Attach routes to the Express app (pass the typed app)
 registerRoutes(app);
 
-// Serve static files in production (for Vercel)
-if (process.env.NODE_ENV === "production") {
-  // Use path.resolve with __dirname to get the correct path
-  const distPath = path.resolve(__dirname, "..", "client", "dist");
-  
-  // Serve static files
-  app.use(express.static(distPath));
-  
-  // Catch-all route to serve index.html for client-side routing
-  app.get("*", (req: Request, res: Response) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
-  });
-}
-
-// Export the app for Vercel
+// Export the app for Vercel (required)
 export default app;
-export const config = {
-  api: {
-    bodyParser: true,
-  },
-};

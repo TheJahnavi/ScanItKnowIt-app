@@ -3,26 +3,17 @@
   "builds": [
     {
       "src": "server/vercel-entry.ts",
-      "use": "@vercel/node",
-      "config": {
-        "runtime": "nodejs20.x",
-        "buildCommand": "cd server && npm install && npm run build",
-        "outputDirectory": "server/dist"
-      }
+      "use": "@vercel/node"
     },
     {
       "src": "client",
-      "use": "@vercel/static-build",
-      "config": {
-        "buildCommand": "cd client && npm install && npm run build",
-        "outputDirectory": "client/dist"
-      }
+      "use": "@vercel/static"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "server/vercel-entry.ts"
+      "dest": "server"
     },
     {
       "src": "/(.*)",

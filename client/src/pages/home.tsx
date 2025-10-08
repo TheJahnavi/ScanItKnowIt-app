@@ -1112,12 +1112,12 @@ export default function Home() {
   });
 
   const handlePhotoCapture = (file: File) => {
-    setCurrentState("processing");
+    setState("processing");
     analyzeProductMutation.mutate(file);
   };
 
   const handleScanAnother = () => {
-    setCurrentState("camera");
+    setState("camera");
     setAnalysis(null);
   };
 
@@ -1126,38 +1126,6 @@ export default function Home() {
       title: "Gallery",
       description: "Gallery selection opened",
     });
-  };
-
-  // Modify the handleNewScan function to store data in sessionStorage
-  const handleNewScan = async () => {
-    if (!capturedImage) return;
-    
-    setState("processing");
-    
-    try {
-      // Convert image to base64
-      const base64Image = capturedImage.split(',')[1];
-      
-      // Process the image through OCR and AI analysis
-      const analysisResult = await performClientSideAnalysis(base64Image, capturedImageName);
-      
-      // Store the analysis result in sessionStorage
-      const sessionId = 'session-' + Date.now();
-      sessionStorage.setItem('currentSessionId', sessionId);
-      sessionStorage.setItem(`analysis-${sessionId}`, JSON.stringify(analysisResult));
-      
-      // Set the analysis data and switch to analysis view
-      setAnalysis(analysisResult);
-      setState("analysis");
-    } catch (error) {
-      console.error("Scan processing error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to process the scan. Please try again.",
-        variant: "destructive",
-      });
-      setState("camera");
-    }
   };
 
   return (
@@ -1192,7 +1160,6 @@ export default function Home() {
             analysis={analysis} 
             onScanAnother={() => {
               setState("camera");
-              setCapturedImage(null);
               setAnalysis(null);
               sessionStorage.clear(); // Clear session data when scanning another product
             }} 

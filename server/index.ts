@@ -1,8 +1,8 @@
-import express, { type Request, Response, NextFunction } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 
-const app = express();
+const app: Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

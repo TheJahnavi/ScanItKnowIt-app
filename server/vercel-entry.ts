@@ -1,7 +1,7 @@
-import express from "express";
+import express, { type Express } from "express";
 import { registerRoutes } from "./routes";
 
-const app = express();
+const app: Express = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 

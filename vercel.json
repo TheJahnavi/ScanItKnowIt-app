@@ -11,7 +11,7 @@
       }
     },
     {
-      "src": "client",
+      "src": "client/vite.config.ts",
       "use": "@vercel/static-build",
       "config": {
         "buildCommand": "cd client && npm install && npm run build",

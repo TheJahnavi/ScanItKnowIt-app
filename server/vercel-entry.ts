@@ -1,23 +1,26 @@
-import express, { Express, Request, Response } from 'express';
+import express, { Express, Request, Response } from 'express'; // Explicitly import types
 import path from 'node:path';
+import { registerRoutes } from './routes'; // Import route setup function (using registerRoutes)
 
+// Explicitly type the Express app
 const app: Express = express();
-const PORT = process.env.PORT || 3001;
 
-// Add JSON middleware (required for req.body)
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Add middleware (now recognized by TypeScript)
+app.use(express.json()); // Parses JSON request bodies
+app.use(express.urlencoded({ extended: true })); // Parses form data
 
-// Correct path to client's dist directory (adjust based on your project structure)
-const clientDist = path.join(__dirname, '../client/dist'); // Example: If server is in project-root/server, client is in project-root/client
-console.log('Client dist path:', clientDist); // Log to validate during server startup
-app.use(express.static(clientDist)); // Serve client static files
+// Serve client static files (verify path)
+const clientDist = path.join(__dirname, '../client/dist'); // Adjust if server/client are nested differently
+app.use(express.static(clientDist));
 
-// Catch-all route to serve client's index.html (type req/res explicitly)
+// Catch-all route to serve client's index.html (explicit typing)
 app.get('*', (req: Request, res: Response) => {
-  // Ensure index.html exists in clientDist
-  res.sendFile(path.join(clientDist, 'index.html'));
+  const indexPath = path.join(clientDist, 'index.html');
+  res.sendFile(indexPath); // Verify indexPath exists in logs
 });
 
-// Export the app for Vercel (required)
+// Attach routes to the Express app
+registerRoutes(app);
+
+// Export the app for Vercel (CRITICAL for serverless deployment)
 export default app;

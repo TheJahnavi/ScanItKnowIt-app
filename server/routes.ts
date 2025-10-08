@@ -1,4 +1,4 @@
-import type { Express } from "express";
+import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { identifyProductAndExtractText, analyzeIngredients, analyzeNutrition, generateChatResponse } from "./services/openai";
@@ -15,7 +15,7 @@ const upload = multer({
 export async function registerRoutes(app: Express): Promise<Server | void> {
   
   // Upload and analyze product image
-  app.post("/api/analyze-product", upload.single('image'), async (req, res) => {
+  app.post("/api/analyze-product", upload.single('image'), async (req: Request, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
@@ -51,7 +51,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   });
 
   // Get ingredients analysis
-  app.post("/api/analyze-ingredients/:analysisId", async (req, res) => {
+  app.post("/api/analyze-ingredients/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       
@@ -71,7 +71,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   });
 
   // Get nutrition analysis
-  app.post("/api/analyze-nutrition/:analysisId", async (req, res) => {
+  app.post("/api/analyze-nutrition/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       
@@ -90,7 +90,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   });
 
   // Get Reddit reviews
-  app.post("/api/analyze-reddit/:analysisId", async (req, res) => {
+  app.post("/api/analyze-reddit/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       
@@ -109,7 +109,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   });
 
   // Chat with AI about product
-  app.post("/api/chat/:analysisId", async (req, res) => {
+  app.post("/api/chat/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       const { message, productData } = req.body;
@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server | void> {
   });
 
   // Get chat history (returns empty array since we're not storing data)
-  app.get("/api/chat/:analysisId", async (req, res) => {
+  app.get("/api/chat/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       const messages = await storage.getChatMessages(analysisId);

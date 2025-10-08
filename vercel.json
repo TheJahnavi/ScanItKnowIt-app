@@ -2,6 +2,7 @@
   "version": 2,
   "builds": [
     {
+      "id": "server",
       "src": "server/vercel-entry.ts",
       "use": "@vercel/node",
       "config": {
@@ -11,7 +12,8 @@
       }
     },
     {
-      "src": "client/vite.config.ts",
+      "id": "client",
+      "src": "client",
       "use": "@vercel/static-build",
       "config": {
         "buildCommand": "cd client && npm install && npm run build",
@@ -26,8 +28,8 @@
     },
     {
       "src": "/(.*)",
-      "dest": "client/dist/$1",
-      "status": 200
+      "dest": "client",
+      "methods": ["GET"]
     }
   ]
 }

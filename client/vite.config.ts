@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, "dist"),
+    outDir: "dist", // Changed to relative path
     emptyOutDir: true,
   },
   server: {

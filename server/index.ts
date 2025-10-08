@@ -1,6 +1,7 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+import path from "path";
 
 const app: Express = express();
 app.use(express.json());
@@ -38,6 +39,20 @@ app.use((req, res, next) => {
 
 // Register routes
 registerRoutes(app);
+
+// Serve static files in production
+if (process.env.NODE_ENV === "production") {
+  // Use path.resolve with __dirname to get the correct path
+  const distPath = path.resolve(__dirname, "..", "client", "dist");
+  
+  // Serve static files
+  app.use(express.static(distPath));
+  
+  // Catch-all route to serve index.html for client-side routing
+  app.get("*", (_req, res) => {
+    res.sendFile(path.resolve(distPath, "index.html"));
+  });
+}
 
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;

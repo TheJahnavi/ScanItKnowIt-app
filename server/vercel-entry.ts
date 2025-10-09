@@ -1,9 +1,9 @@
-import express from 'express';
+import express, { Application, Request, Response } from 'express'; // Import types directly
 import path from 'node:path';
 import { registerRoutes } from './routes';
 
-// Explicitly type app using express.Application
-const app: express.Application = express();
+// Explicitly type the app as Express.Application
+const app: Application = express();
 
 // Middleware (now recognized by TypeScript)
 app.use(express.json());
@@ -14,10 +14,10 @@ const clientDist = path.join(__dirname, '../../client/dist');
 console.log('Client dist path:', clientDist);
 app.use(express.static(clientDist));
 
-// Catch-all route to serve index.html
-app.get('*', (req, res) => {
+// Catch-all route to serve index.html (with explicit types)
+app.get('*', (req: Request, res: Response) => {
   const indexPath = path.join(clientDist, 'index.html');
-  res.sendFile(indexPath); // Now recognized (express.Response includes sendFile)
+  res.sendFile(indexPath); // TypeScript now recognizes sendFile on Response
 });
 
 // Attach routes

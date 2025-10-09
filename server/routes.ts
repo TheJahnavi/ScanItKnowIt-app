@@ -1,13 +1,18 @@
-import express from 'express';
+import express, { Application, Request, Response } from 'express'; // Import types directly
 import { createServer, Server } from 'http';
 import { storage } from './storage';
-import { identifyProductAndExtractText, analyzeIngredients, analyzeNutrition, generateChatResponse } from './services/openai';
+import { 
+  identifyProductAndExtractText, 
+  analyzeIngredients, 
+  analyzeNutrition, 
+  generateChatResponse 
+} from './services/openai';
 import { searchRedditReviews } from './services/reddit';
 import multer from 'multer';
 
-// Extend Request to include Multer's file property
-interface MulterRequest extends express.Request {
-  file?: Express.Multer.File;
+// Extend Express.Request (not express.Request) to include Multer's file property
+interface MulterRequest extends Request {
+  file?: Express.Multer.File; // Use Express.Multer.File type
 }
 
 const upload = multer({
@@ -15,24 +20,21 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-export async function registerRoutes(app: express.Application): Promise<Server | void> {
+export async function registerRoutes(app: Application): Promise<Server | void> {
   // Upload and analyze product image
-  app.post("/api/analyze-product", upload.single('image'), async (req: MulterRequest, res: express.Response) => {
+  app.post("/api/analyze-product", upload.single('image'), async (req: MulterRequest, res: Response) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: "No image file provided" });
       }
       const base64Image = req.file.buffer.toString('base64');
       
-      // Initial AI processing
       const analysisResult = await identifyProductAndExtractText(base64Image);
-      
-      // Create product analysis record (in-memory only)
       const productAnalysis = await storage.createProductAnalysis({
         productName: analysisResult.productName,
         productSummary: analysisResult.summary,
         extractedText: analysisResult.extractedText,
-        imageUrl: null, 
+        imageUrl: null,
         ingredientsData: null,
         nutritionData: null,
         redditData: null,
@@ -49,14 +51,12 @@ export async function registerRoutes(app: express.Application): Promise<Server |
     }
   });
 
-  // Get ingredients analysis
-  app.post("/api/analyze-ingredients/:analysisId", async (req: express.Request, res: express.Response) => {
+  // Get ingredients analysis (use Request/Response types directly)
+  app.post("/api/analyze-ingredients/:analysisId", async (req: Request, res: Response) => {
     try {
-      const { analysisId } = req.params; // req.params is now recognized (express.Request includes params)
-      
-      const { extractedText } = req.body; // req.body is now recognized (express.Request includes body)
+      const { analysisId } = req.params; // req.params is recognized via Request type
+      const { extractedText } = req.body; // req.body is recognized via Request type (thanks to express.json() middleware)
       const ingredientsData = await analyzeIngredients(extractedText);
-      
       res.json(ingredientsData);
     } catch (error) {
       console.error("Error analyzing ingredients:", error);
@@ -65,7 +65,7 @@ export async function registerRoutes(app: express.Application): Promise<Server |
   });
 
   // Get nutrition analysis
-  app.post("/api/analyze-nutrition/:analysisId", async (req: express.Request, res: express.Response) => {
+  app.post("/api/analyze-nutrition/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       const { extractedText } = req.body;
@@ -78,7 +78,7 @@ export async function registerRoutes(app: express.Application): Promise<Server |
   });
 
   // Get Reddit reviews
-  app.post("/api/analyze-reddit/:analysisId", async (req: express.Request, res: express.Response) => {
+  app.post("/api/analyze-reddit/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       const { productName } = req.body;
@@ -91,7 +91,7 @@ export async function registerRoutes(app: express.Application): Promise<Server |
   });
 
   // Chat with AI about product
-  app.post("/api/chat/:analysisId", async (req: express.Request, res: express.Response) => {
+  app.post("/api/chat/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       const { message, productData } = req.body;
@@ -111,7 +111,7 @@ export async function registerRoutes(app: express.Application): Promise<Server |
   });
 
   // Get chat history (returns empty array since we're not storing data)
-  app.get("/api/chat/:analysisId", async (req: express.Request, res: express.Response) => {
+  app.get("/api/chat/:analysisId", async (req: Request, res: Response) => {
     try {
       const { analysisId } = req.params;
       const messages = await storage.getChatMessages(analysisId);

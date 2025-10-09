@@ -15,14 +15,18 @@
       "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "/server"
+      "source": "/api/(.*)",
+      "destination": "/server/$1"
     },
     {
-      "src": "/(.*)",
-      "dest": "/client/public/$1"
+      "source": "/",
+      "destination": "/client/public/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/client/public/$1"
     }
   ]
 }

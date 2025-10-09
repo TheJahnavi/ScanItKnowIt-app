@@ -1,3 +1,26 @@
+# ScanItKnowIt
+
+This is the ScanItKnowIt application, a product analysis tool that uses AI to provide insights about products based on images.
+
+## Features
+- Product identification using OCR
+- Ingredient analysis
+- Nutritional information analysis
+- Reddit review aggregation
+- AI-powered chat responses
+
+## Deployment Status
+- Fixed vercel.json syntax error
+- Client and server builds configured
+- Static file serving from client/public
+
+## Technologies Used
+- React/Vite for frontend
+- Express.js for backend
+- OpenAI API for analysis
+- Reddit API for reviews
+- Vercel for deployment
+
 # ScanItKnowIt - Vercel Deployment
 
 This document provides instructions for deploying the ScanItKnowIt application to Vercel with both frontend and backend.

@@ -7,18 +7,22 @@
       "use": "@vercel/node"
     },
     {
-      "src": "client/public",
-      "use": "@vercel/static"
+      "src": "client/package.json",
+      "use": "@vercel/node",
+      "config": {
+        "buildCommand": "npm run build",
+        "outputDirectory": "public"
+      }
     }
   ],
-  "rewrites": [
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "server"
+      "src": "/api/(.*)",
+      "dest": "/server"
     },
     {
-      "source": "/(.*)",
-      "destination": "client/public"
+      "src": "/(.*)",
+      "dest": "/client/public/$1"
     }
   ]
 }

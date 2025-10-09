@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist", // Changed to relative path
+    outDir: "public", // Change from "dist" to "public"
     emptyOutDir: true,
   },
   server: {

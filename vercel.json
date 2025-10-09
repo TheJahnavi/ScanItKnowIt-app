@@ -11,8 +11,7 @@
     },
     {
       "src": "client",
-      "use": "@vercel/static",
-      "output": "dist"
+      "use": "@vercel/static"
     }
   ],
   "routes": [
@@ -22,7 +21,7 @@
     },
     {
       "src": "/(.*)",
-      "dest": "client",
+      "dest": "client/public",
       "methods": ["GET"]
     }
   ]

@@ -3,7 +3,8 @@
   "builds": [
     {
       "src": "server/vercel-entry.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "tsconfig": "server/tsconfig.json"
     },
     {
       "src": "client",

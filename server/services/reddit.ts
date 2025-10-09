@@ -25,7 +25,7 @@ export async function searchRedditReviews(productName: string): Promise<any> {
     const data = await response.json();
     
     // Process Reddit data to extract relevant information
-    const posts = data.data?.children || [];
+    const posts = (data as any).data?.children || [];
     const reviews = posts
       .filter((post: any) => 
         post.data.title.toLowerCase().includes('review') ||
@@ -52,7 +52,12 @@ export async function searchRedditReviews(productName: string): Promise<any> {
             },
             {
               role: "user",
-              content: `Product: ${productName}\n\nReal Reddit user reviews:\n${reviewsText}\n\nExtract specific pros and cons mentioned by actual users.`
+              content: `Product: ${productName}
+
+Real Reddit user reviews:
+${reviewsText}
+
+Extract specific pros and cons mentioned by actual users.`
             },
           ],
         }, {

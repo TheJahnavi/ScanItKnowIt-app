@@ -1,10 +1,13 @@
 {
+  "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "builds": [
     {
       "src": "server/vercel-entry.ts",
       "use": "@vercel/node",
-      "tsconfig": "server/tsconfig.json"
+      "config": {
+        "tsconfig": "server/tsconfig.json"
+      }
     },
     {
       "src": "client",

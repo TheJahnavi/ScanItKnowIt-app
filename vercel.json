@@ -13,13 +13,12 @@
   ],
   "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "server"
+      "source": "/api/(.*)",
+      "destination": "server"
     },
     {
-      "src": "/(.*)",
-      "dest": "client/public",
-      "methods": ["GET"]
+      "source": "/(.*)",
+      "destination": "client/public"
     }
   ]
 }

@@ -13,6 +13,7 @@ This is the ScanItKnowIt application, a product analysis tool that uses AI to pr
 - Fixed vercel.json syntax error
 - Client and server builds configured
 - Static file serving from client/public
+- Updated vercel.json to use correct Vercel v2 syntax with rewrites and source/destination
 
 ## Technologies Used
 - React/Vite for frontend

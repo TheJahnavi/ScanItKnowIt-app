@@ -7,7 +7,7 @@
       "use": "@vercel/node",
       "config": {
         "buildCommand": "npm run build",
-        "outputDirectory": "public"
+        "outputDirectory": "client/public"
       }
     },
     {
@@ -22,11 +22,11 @@
     },
     {
       "source": "/",
-      "destination": "/client/public/index.html"
+      "destination": "/index.html"
     },
     {
       "source": "/(.*)",
-      "destination": "/client/public/$1"
+      "destination": "/$1"
     }
   ]
 }

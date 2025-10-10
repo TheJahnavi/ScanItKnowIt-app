@@ -1,9 +1,14 @@
+
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
   "builds": [
     {
-      "src": "client/package.json"
+      "src": "client/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "public"
+      }
     },
     {
       "src": "server/vercel-entry.ts",

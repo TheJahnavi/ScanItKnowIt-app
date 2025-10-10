@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/vercel-entry.js",
   "scripts": {
-    "build": "tsc",
+    "build": "tsc --outDir dist",
     "start": "node dist/vercel-entry.js"
   },
   "dependencies": {

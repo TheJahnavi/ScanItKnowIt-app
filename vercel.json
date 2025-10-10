@@ -1,7 +1,7 @@
-
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
+  "outputDirectory": "public",
   "builds": [
     {
       "src": "client/package.json",
@@ -22,7 +22,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/public/index.html"
+      "destination": "/index.html"
     }
   ]
 }

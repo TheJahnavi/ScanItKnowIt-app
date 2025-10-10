@@ -1,5 +1,10 @@
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
+
+// Get the directory name of the current module
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Function to move files recursively
 function moveFiles(src, dest) {
@@ -29,22 +34,17 @@ function moveFiles(src, dest) {
   });
 
   // Remove empty source directory
-  fs.rmdirSync(src);
-  console.log(`Removed empty directory ${src}`);
+  try {
+    fs.rmSync(src, { recursive: true, force: true });
+    console.log(`Removed empty directory ${src}`);
+  } catch (err) {
+    console.log(`Could not remove directory ${src}: ${err.message}`);
+  }
 }
 
-// Determine the correct paths based on where the script is being run from
-let serverDist, rootDist;
-
-if (process.cwd().endsWith('server')) {
-  // Script is run from server directory
-  serverDist = path.join(process.cwd(), 'dist');
-  rootDist = path.join(process.cwd(), '..', 'dist');
-} else {
-  // Script is run from root directory
-  serverDist = path.join(process.cwd(), 'server', 'dist');
-  rootDist = path.join(process.cwd(), 'dist');
-}
+// Use explicit paths - script is in root, so we need to look for server/dist
+const serverDist = path.join(__dirname, 'server', 'dist');
+const rootDist = path.join(__dirname, 'dist');
 
 console.log(`Moving files from ${serverDist} to ${rootDist}`);
 moveFiles(serverDist, rootDist);

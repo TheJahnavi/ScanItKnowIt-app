@@ -17,7 +17,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/public/index.html"
+      "destination": "/dist/client/index.html"
     }
   ]
 }

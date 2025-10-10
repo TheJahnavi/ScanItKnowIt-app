@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true }));
 registerRoutes(app);
 
 // Serve client static files - corrected path for Vercel
-const clientDist = path.join(__dirname, '../client-dist');
+const clientDist = path.join(__dirname, '../public');
 console.log('Client dist path:', clientDist);
 app.use(express.static(clientDist));
 

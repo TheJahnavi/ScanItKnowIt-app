@@ -143,7 +143,7 @@ Extract specific pros and cons mentioned by actual users.`
           url: "https://reddit.com/r/hiking/comments/sample1"
         },
         {
-          title: "Kids love these for school lunch", 
+          title: "Kids love these more than other granola bars we've tried", 
           score: 12,
           url: "https://reddit.com/r/parenting/comments/sample2"
         }

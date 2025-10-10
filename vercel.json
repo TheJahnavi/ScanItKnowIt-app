@@ -3,27 +3,21 @@
   "version": 2,
   "builds": [
     {
-      "src": "client/package.json",
-      "output": "dist/client-dist"
+      "src": "client/package.json"
     },
     {
-      "src": "server/package.json",
-      "use": "@vercel/node",
-      "output": "dist/server-dist"
+      "src": "server/vercel-entry.ts",
+      "use": "@vercel/node"
     }
   ],
-  "routes": [
+  "rewrites": [
     {
-      "src": "/api/(.*)",
-      "dest": "dist/server-dist/vercel-entry.js"
+      "source": "/api/(.*)",
+      "destination": "/dist/vercel-entry.js"
     },
     {
-      "src": "/(.*)\\.(.*)",
-      "dest": "dist/client-dist/$1.$2"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "dist/client-dist/index.html"
+      "source": "/(.*)",
+      "destination": "/public/index.html"
     }
   ]
 }

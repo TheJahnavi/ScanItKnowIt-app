@@ -1,18 +1,13 @@
 {
+  "buildCommand": "npm run build",
   "builds": [
     {
       "src": "client/package.json",
-      "use": "@vercel/static-build",
-      "config": {
-        "distDir": "public"
-      }
+      "use": "@vercel/static-build"
     },
     {
       "src": "server/vercel-entry.ts",
-      "use": "@vercel/node",
-      "config": {
-        "distDir": "dist"
-      }
+      "use": "@vercel/node"
     }
   ],
   "rewrites": [

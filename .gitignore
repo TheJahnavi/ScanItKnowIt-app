@@ -8,6 +8,9 @@ pnpm-lock.yaml
 # Production builds
 public
 .build
+dist
+client/dist
+server/dist
 
 # Environment files
 .env

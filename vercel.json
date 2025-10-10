@@ -1,15 +1,6 @@
 {
   "buildCommand": "npm run build",
-  "builds": [
-    {
-      "src": "client/package.json",
-      "use": "@vercel/static-build"
-    },
-    {
-      "src": "server/vercel-entry.ts",
-      "use": "@vercel/node"
-    }
-  ],
+  "outputDirectory": "dist",
   "rewrites": [
     {
       "source": "/api/(.*)",

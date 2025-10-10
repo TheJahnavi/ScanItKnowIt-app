@@ -7,14 +7,15 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "express"],
+    "types": ["node"],
     "moduleResolution": "nodenext",
     "allowSyntheticDefaultImports": true,
     "removeComments": true,
     "outDir": "dist",
     "rootDir": ".",
     "resolveJsonModule": true,
-    "noEmit": false
+    "noEmit": false,
+    "typeRoots": ["./node_modules/@types"]
   },
   "include": ["**/*"],
   "exclude": ["node_modules", "dist"]

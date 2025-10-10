@@ -7,7 +7,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-const clientDist = path.join(__dirname, '../client/public');
+const clientDist = path.join(__dirname, '../client/dist');
 console.log('Client dist path:', clientDist);
 app.use(express.static(clientDist));
 registerRoutes(app);

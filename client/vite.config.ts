@@ -12,7 +12,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "public", // Change from "dist" to "public"
+    outDir: "public",
     emptyOutDir: true,
   },
   server: {
@@ -21,4 +21,6 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  // Add base path for Vercel deployment
+  base: "./",
 });

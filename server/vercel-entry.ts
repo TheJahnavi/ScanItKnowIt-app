@@ -13,13 +13,13 @@ const app: Application = express();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// API routes should come before the catch-all route
+registerRoutes(app);
+
 // Serve client static files - corrected path for Vercel
 const clientDist = path.join(__dirname, '../client/dist');
 console.log('Client dist path:', clientDist);
 app.use(express.static(clientDist));
-
-// API routes should come before the catch-all route
-registerRoutes(app);
 
 // Catch-all route to serve index.html for client-side routing
 app.get('*', (req: Request, res: Response) => {

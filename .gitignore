@@ -11,6 +11,7 @@ public
 dist
 client/dist
 server/dist
+client-dist
 
 # Environment files
 .env

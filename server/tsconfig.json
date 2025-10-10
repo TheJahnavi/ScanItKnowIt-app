@@ -11,12 +11,12 @@
     "moduleResolution": "nodenext",
     "allowSyntheticDefaultImports": true,
     "removeComments": true,
-    "outDir": "../server-dist",
+    "outDir": "../dist/server-dist",
     "rootDir": ".",
     "resolveJsonModule": true,
     "noEmit": false,
     "typeRoots": ["./node_modules/@types"]
   },
   "include": ["**/*"],
-  "exclude": ["node_modules"]
+  "exclude": ["node_modules", "dist"]
 }

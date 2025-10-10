@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 /**
  * Searches the web for product-related information using a search API
  */
@@ -8,6 +6,9 @@ export async function searchWeb(query: string, productName: string): Promise<str
     // Use DuckDuckGo Instant Answer API (free, no API key required)
     const searchQuery = encodeURIComponent(`${productName} ${query}`);
     const ddgUrl = `https://api.duckduckgo.com/?q=${searchQuery}&format=json&no_redirect=1&no_html=1`;
+    
+    // Use dynamic import for node-fetch
+    const { default: fetch } = await import('node-fetch');
     
     const response = await fetch(ddgUrl, {
       headers: {

@@ -1,13 +1,13 @@
 import express, { Application, Request, Response } from 'express'; // Import types directly
 import { createServer, Server } from 'http';
-import { storage } from './storage';
+import { storage } from './storage.js';
 import { 
   identifyProductAndExtractText, 
   analyzeIngredients, 
   analyzeNutrition, 
   generateChatResponse 
-} from './services/openai';
-import { searchRedditReviews } from './services/reddit';
+} from './services/openai.js';
+import { searchRedditReviews } from './services/reddit.js';
 import multer from 'multer';
 
 // Extend Express.Request (not express.Request) to include Multer's file property

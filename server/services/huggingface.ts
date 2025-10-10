@@ -1,5 +1,3 @@
-import fetch from 'node-fetch';
-
 // Hugging Face Inference API for free AI model access
 // Using free models that don't require API keys
 
@@ -11,6 +9,9 @@ const TEXT_MODEL = "microsoft/DialoGPT-medium"; // Free text generation model
 
 export async function analyzeImageWithVision(base64Image: string): Promise<any> {
   try {
+    // Use dynamic import for node-fetch
+    const { default: fetch } = await import('node-fetch');
+    
     // Use multiple HuggingFace models for better text extraction
     const models = [
       "Salesforce/blip-image-captioning-large",

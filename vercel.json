@@ -1,4 +1,5 @@
 {
+  "outputDirectory": "dist",
   "builds": [
     {
       "src": "client/package.json",

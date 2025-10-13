@@ -1,7 +1,7 @@
 import express, { Application, Request, Response } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { registerRoutes } from '../server/routes.js';
+import { registerRoutes } from '../routes.js';
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);

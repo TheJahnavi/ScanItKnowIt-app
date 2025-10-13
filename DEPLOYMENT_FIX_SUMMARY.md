@@ -67,6 +67,12 @@ const clientDist = path.join(__dirname, '../dist/client');
 app.use(express.static(clientDist));
 ```
 
+### 7. Build Process Enhancement
+Updated `move-server-dist.js` to properly copy the `api/index.ts` file to the `dist/api/` directory during the build process, ensuring that Vercel can compile it correctly.
+
+### 8. Import Path Correction
+Fixed the import path in `api/index.ts` to correctly resolve the compiled `routes.js` file in the `dist/` directory, changing from `../server/routes.js` to `../routes.js`.
+
 ## Expected Outcome
 This final configuration tells Vercel:
 - To run the root build script which handles both client and server builds

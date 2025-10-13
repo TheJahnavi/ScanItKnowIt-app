@@ -37,12 +37,13 @@ Applied the final corrected configuration with precise paths aligned with the ac
 6. **Updated Build Process**: Modified the build process to copy the api directory to the dist directory during the build process
 
 ### 3. Root Build Script
-The root `package.json` build script remains:
+The root `package.json` build script has been updated to ensure server dependencies are installed before the server build runs:
 ```json
 "build": "npm run build:client && npm run build:server"
+"build:server": "cd server && pnpm install && npm run build && cd .. && node move-server-dist.js"
 ```
 
-This ensures both client and server are built in the correct sequence.
+This ensures both client and server are built in the correct sequence, with the server dependencies properly installed before the TypeScript compilation.
 
 ### 4. Verified Build Output Structure
 Confirmed that the build process creates the correct directory structure:

@@ -168,4 +168,4 @@ ScanItKnowIt/
 
 ### Build and Deployment Scripts
 - **move-server-dist.js**: Moves server build output to correct location and copies api directory to dist
-- **package.json**: Contains build scripts (`build`, `build:client`, `build:server`)
+- **package.json**: Contains build scripts (`build`, `build:client`, `build:server`) with `build:server` now including `pnpm install` to ensure server dependencies are properly installed before TypeScript compilation

@@ -1,16 +1,10 @@
 {
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
-  "functions": {
-    "server/vercel-entry.ts": {
-      "runtime": "@vercel/node@3.0.7",
-      "memory": 1024
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/vercel-entry.js"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",

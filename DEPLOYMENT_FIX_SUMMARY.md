@@ -4,7 +4,7 @@
 The application is experiencing a "No Output Directory named 'dist' found" error during Vercel deployment, despite successful local builds.
 
 ## Root Cause
-Vercel's Build Output API (BOA) is not correctly recognizing the output directory structure when using complex `builds` array configurations. The platform is failing to see the aggregate folder specified by the root `outputDirectory`.
+Vercel's Build Output API (BOA) is not correctly recognizing the output directory structure and serverless function location.
 
 ## Ultimate Solution Implemented
 
@@ -15,16 +15,10 @@ Applied the final corrected configuration with precise paths aligned with the ac
 {
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
-  "functions": {
-    "server/vercel-entry.ts": {
-      "runtime": "@vercel/node@3.0.7",
-      "memory": 1024
-    }
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/vercel-entry.js"
+      "destination": "/api/index.js"
     },
     {
       "source": "/(.*)",
@@ -35,10 +29,11 @@ Applied the final corrected configuration with precise paths aligned with the ac
 ```
 
 ### 2. Key Changes Explanation
-1. **Corrected Output Directory**: Changed `outputDirectory` to `"dist"` to match the actual build output location
+1. **Corrected Output Directory**: Set `outputDirectory` to `"dist"` to match the actual build output location
 2. **Added Explicit Build Command**: Added `buildCommand: "npm run build"` to ensure Vercel executes the correct build process
-3. **Enhanced Functions Configuration**: Updated the `functions` configuration with explicit runtime version and memory allocation
+3. **Removed Functions Configuration**: Removed the explicit `functions` configuration to allow Vercel's Zero Config mode to automatically detect the function in the `api` directory
 4. **Aligned Rewrite Destinations**: Updated rewrites to point to the correct compiled files with proper path alignment
+5. **Moved Serverless Function**: Moved the serverless function from `server/vercel-entry.ts` to `api/index.ts` to comply with Vercel's default function detection
 
 ### 3. Root Build Script
 The root `package.json` build script remains:
@@ -63,7 +58,7 @@ build: {
 ```
 
 ### 6. Server Configuration
-Verified that `server/vercel-entry.ts` correctly serves static files:
+Verified that `api/index.ts` correctly serves static files:
 ```javascript
 const clientDist = path.join(__dirname, '../dist/client');
 app.use(express.static(clientDist));
@@ -73,7 +68,7 @@ app.use(express.static(clientDist));
 This final configuration tells Vercel:
 - To run the root build script which handles both client and server builds
 - To look for the output in the `dist` directory (matching the actual build output)
-- To use the enhanced `functions` configuration for serverless deployment with proper runtime and memory settings
+- To automatically detect the serverless function in the `api` directory using Zero Config mode
 - How to route requests to the appropriate destinations with correct path alignment
 
-The fix addresses the specific "No Output Directory named 'dist' found" error by precisely aligning the `outputDirectory` with the actual build output location and ensuring all paths are consistent, preventing both build and routing issues.
+The fix addresses the specific "No Output Directory named 'dist' found" error by precisely aligning the `outputDirectory` with the actual build output location and ensuring the serverless function is in the correct location for Vercel's automatic detection, preventing both build and routing issues.

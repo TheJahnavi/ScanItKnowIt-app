@@ -1,7 +1,6 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { execSync } from 'child_process';
 
 // Get the directory name of the current module
 const __filename = fileURLToPath(import.meta.url);
@@ -51,18 +50,49 @@ const rootDist = path.join(__dirname, 'dist');
 console.log(`Moving files from ${serverDist} to ${rootDist}`);
 moveFiles(serverDist, rootDist);
 
-// Copy the api directory to dist
-console.log(`Copying files from ${apiDist} to ${rootDist}`);
+// Create the api/index.js file directly with correct import paths
+console.log(`Creating dist/api/index.js with correct import paths`);
+const apiDestDir = path.join(rootDist, 'api');
+const apiDest = path.join(apiDestDir, 'index.js');
+
 // Create the api directory in dist if it doesn't exist
-const distApiDir = path.join(rootDist, 'api');
-if (!fs.existsSync(distApiDir)) {
-  fs.mkdirSync(distApiDir, { recursive: true });
+if (!fs.existsSync(apiDestDir)) {
+  fs.mkdirSync(apiDestDir, { recursive: true });
 }
 
-// Copy the api/index.ts file to dist/api/index.ts
-const apiSource = path.join(apiDist, 'index.ts');
-const apiDest = path.join(distApiDir, 'index.ts');
-if (fs.existsSync(apiSource)) {
-  fs.copyFileSync(apiSource, apiDest);
-  console.log(`Copied ${apiSource} to ${apiDest}`);
-}
+// Create the api/index.js file with correct import paths
+const apiJsContent = `import express from 'express';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { registerRoutes } from '../routes.js';
+
+// Get __dirname equivalent in ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const app = express();
+
+// Middleware
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// API routes should come before the catch-all route
+registerRoutes(app);
+
+// Serve client static files - corrected path for Vercel
+const clientDist = path.join(__dirname, '../client');
+console.log('Client dist path:', clientDist);
+app.use(express.static(clientDist));
+
+// Catch-all route to serve index.html for client-side routing
+app.get('*', (req, res) => {
+  const indexPath = path.join(clientDist, 'index.html');
+  res.sendFile(indexPath);
+});
+
+// Export the app for serverless deployment
+export default app;
+`;
+
+fs.writeFileSync(apiDest, apiJsContent);
+console.log(`Created ${apiDest} with correct import paths`);

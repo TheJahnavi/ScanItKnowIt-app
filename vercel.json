@@ -1,21 +1,20 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "version": 2,
-  "outputDirectory": "dist/client",
+  "outputDirectory": "dist",
   "buildCommand": "npm run build",
   "functions": {
     "server/vercel-entry.ts": {
-      "runtime": "@vercel/node@3.0.0"
+      "runtime": "@vercel/node@3.0.7",
+      "memory": 1024
     }
   },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/server/vercel-entry.ts"
+      "destination": "/vercel-entry.js"
     },
     {
       "source": "/(.*)",
-      "destination": "/index.html"
+      "destination": "/client/index.html"
     }
   ]
 }

@@ -35,6 +35,7 @@ Applied the final corrected configuration with precise paths aligned with the ac
 4. **Aligned Rewrite Destinations**: Updated rewrites to point to the correct compiled files with proper path alignment
 5. **Moved Serverless Function**: Moved the serverless function from `server/vercel-entry.ts` to `api/index.ts` to comply with Vercel's default function detection
 6. **Updated Build Process**: Modified the build process to copy the api directory to the dist directory during the build process
+7. **Fixed TypeScript Typing**: Ensured proper TypeScript typing in `api/index.ts` to resolve TS2339 errors during Vercel serverless compilation
 
 ### 3. Root Build Script
 The root `package.json` build script has been updated to ensure server dependencies are installed before the server build runs:

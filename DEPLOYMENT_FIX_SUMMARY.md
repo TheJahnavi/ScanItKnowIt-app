@@ -34,6 +34,7 @@ Applied the final corrected configuration with precise paths aligned with the ac
 3. **Removed Functions Configuration**: Removed the explicit `functions` configuration to allow Vercel's Zero Config mode to automatically detect the function in the `api` directory
 4. **Aligned Rewrite Destinations**: Updated rewrites to point to the correct compiled files with proper path alignment
 5. **Moved Serverless Function**: Moved the serverless function from `server/vercel-entry.ts` to `api/index.ts` to comply with Vercel's default function detection
+6. **Updated Build Process**: Modified the build process to copy the api directory to the dist directory during the build process
 
 ### 3. Root Build Script
 The root `package.json` build script remains:
@@ -46,7 +47,7 @@ This ensures both client and server are built in the correct sequence.
 ### 4. Verified Build Output Structure
 Confirmed that the build process creates the correct directory structure:
 - `dist/client/` - Contains static frontend files
-- `dist/vercel-entry.js` - Serverless function entry point
+- `dist/api/index.ts` - Serverless function entry point (will be compiled by Vercel)
 
 ### 5. Client Vite Configuration
 Verified that `client/vite.config.ts` outputs to `../dist/client`:

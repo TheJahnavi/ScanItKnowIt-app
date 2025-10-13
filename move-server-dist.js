@@ -44,7 +44,24 @@ function moveFiles(src, dest) {
 
 // Use explicit paths - script is in root, so we need to look for server/dist
 const serverDist = path.join(__dirname, 'server', 'dist');
+const apiDist = path.join(__dirname, 'api');
 const rootDist = path.join(__dirname, 'dist');
 
 console.log(`Moving files from ${serverDist} to ${rootDist}`);
 moveFiles(serverDist, rootDist);
+
+// Copy the api directory to dist
+console.log(`Copying files from ${apiDist} to ${rootDist}`);
+// Create the api directory in dist if it doesn't exist
+const distApiDir = path.join(rootDist, 'api');
+if (!fs.existsSync(distApiDir)) {
+  fs.mkdirSync(distApiDir, { recursive: true });
+}
+
+// Copy the api/index.ts file to dist/api/index.ts
+const apiSource = path.join(apiDist, 'index.ts');
+const apiDest = path.join(distApiDir, 'index.ts');
+if (fs.existsSync(apiSource)) {
+  fs.copyFileSync(apiSource, apiDest);
+  console.log(`Copied ${apiSource} to ${apiDest}`);
+}

@@ -50,6 +50,19 @@ const rootDist = path.join(__dirname, 'dist');
 console.log(`Moving files from ${serverDist} to ${rootDist}`);
 moveFiles(serverDist, rootDist);
 
+// Fix the import path in dist/index.js
+const indexPath = path.join(rootDist, 'index.js');
+if (fs.existsSync(indexPath)) {
+  let indexContent = fs.readFileSync(indexPath, 'utf8');
+  // Replace the import path in the index.js file
+  indexContent = indexContent.replace(
+    'import { registerRoutes } from "./routes.js";',
+    'import { registerRoutes } from "../routes.js";'
+  );
+  fs.writeFileSync(indexPath, indexContent);
+  console.log(`Fixed import path in ${indexPath}`);
+}
+
 // Create the api/index.js file directly with correct import paths
 console.log(`Creating dist/api/index.js with correct import paths`);
 const apiDestDir = path.join(rootDist, 'api');

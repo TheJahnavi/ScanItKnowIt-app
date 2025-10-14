@@ -73,37 +73,23 @@ if (!fs.existsSync(apiDestDir)) {
   fs.mkdirSync(apiDestDir, { recursive: true });
 }
 
-// Create the api/index.js file with correct import paths
+// Create the api/index.js file with simplified content for Vercel serverless functions
 const apiJsContent = `import express from 'express';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { registerRoutes } from '../routes.js';
-
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Middleware
+// Middleware (Keep only necessary server middleware)
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// API routes should come before the catch-all route
+// Register ONLY the API routes
 registerRoutes(app);
 
-// Serve client static files - corrected path for Vercel
-const clientDist = path.join(__dirname, '../client');
-console.log('Client dist path:', clientDist);
-app.use(express.static(clientDist));
+// NOTE: Add your global error handler here if you have one.
+// app.use((err, req, res, next) => { ... });
 
-// Catch-all route to serve index.html for client-side routing
-app.get('*', (req, res) => {
-  const indexPath = path.join(clientDist, 'index.html');
-  res.sendFile(indexPath);
-});
-
-// Export the app for serverless deployment
+// Export the app for Vercel serverless deployment
 export default app;
 `;
 

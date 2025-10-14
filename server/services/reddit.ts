@@ -1,31 +1,12 @@
 import OpenAI from "openai";
 
 // Using OpenRouter with Mistral model
-// Initialize OpenAI client lazily to avoid synchronous initialization issues
-let openai: OpenAI | null = null;
-
-function getOpenAIClient(): OpenAI | null {
-  // Return null if we're in an environment without the required API key
-  if (!process.env.OPENROUTER_API_KEY && !process.env.VERCEL) {
-    // Use the hardcoded key only in non-Vercel environments for development
-    const apiKey = "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";
-    openai = new OpenAI({ 
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: apiKey
-    });
-    return openai;
-  } else if (process.env.OPENROUTER_API_KEY) {
-    // Use the environment variable if available
-    openai = new OpenAI({ 
-      baseURL: "https://openrouter.ai/api/v1",
-      apiKey: process.env.OPENROUTER_API_KEY
-    });
-    return openai;
-  }
-  
-  // In Vercel environment without API key, return null
-  return null;
-}
+// Initialize OpenAI client with environment variable
+const openai = new OpenAI({
+    baseURL: "https://openrouter.ai/api/v1",
+    // 🚨 FIX: Reference the environment variable, DO NOT hardcode the key.
+    apiKey: process.env.OPENROUTER_API_KEY
+});
 
 export async function searchRedditReviews(productName: string): Promise<any> {
   try {
@@ -54,9 +35,8 @@ export async function searchRedditReviews(productName: string): Promise<any> {
       )
       .slice(0, 10);
 
-    // Analyze reviews with AI using the specified prompt, but only if OpenAI client is available
-    const openaiClient = getOpenAIClient();
-    if (openaiClient && reviews.length > 0) {
+    // Analyze reviews with AI using the specified prompt
+    if (reviews.length > 0) {
       try {
         const reviewsText = reviews.map((r: any) => {
           const title = r.data.title || '';
@@ -65,7 +45,7 @@ export async function searchRedditReviews(productName: string): Promise<any> {
           return `Review (${score} upvotes): ${title} - ${selftext}`;
         }).join('\n\n');
         
-        const response = await openaiClient.chat.completions.create({
+        const response = await openai.chat.completions.create({
           model: "mistralai/mistral-small-3.2-24b-instruct:free",
           messages: [
             {
@@ -109,7 +89,7 @@ Extract specific pros and cons mentioned by actual users.`
       }
     }
 
-    // Original fallback analysis if AI fails or is not available
+    // Original fallback analysis if AI fails
     const pros = [];
     const cons = [];
     let totalScore = 0;

@@ -8,7 +8,7 @@
     },
     {
       "source": "/(.*)",
-      "destination": "/client/index.html"
+      "destination": "/client/dist/$1"
     }
   ]
 }

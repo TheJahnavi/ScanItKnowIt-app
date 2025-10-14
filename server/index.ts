@@ -40,8 +40,8 @@ app.use((req, res, next) => {
 // Register routes
 registerRoutes(app);
 
-// Serve static files in production
-if (process.env.NODE_ENV === "production") {
+// Serve static files in production or when deployed to Vercel
+if (process.env.NODE_ENV === "production" || process.env.VERCEL) {
   // Use path.resolve with __dirname to get the correct path
   const distPath = path.resolve(__dirname, "..", "client", "dist");
   

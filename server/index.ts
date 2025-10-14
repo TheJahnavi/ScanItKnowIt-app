@@ -64,35 +64,3 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 // For Vercel, we need to export the app
 export default app;
-
-// For local development, keep the existing server setup
-if (process.env.NODE_ENV !== "production") {
-  (async () => {
-    // importantly only setup vite in development and after
-    // setting up all the other routes so the catch-all route
-    // doesn't interfere with the other routes
-    if (app.get("env") === "development") {
-      const server = await registerRoutes(app as any);
-      if (server) {
-        await setupVite(app, server);
-      }
-    } else {
-      serveStatic(app);
-    }
-
-    // ALWAYS serve the app on the port specified in the environment variable PORT
-    // Other ports are firewalled. Default to 8000 if not specified.
-    // this serves both the API and the client.
-    // It is the only port that is not firewalled.
-    const port = parseInt(process.env.PORT || '3001', 10);
-    const http = require('http');
-    const server = http.createServer(app);
-    server.listen({
-      port,
-      host: "127.0.0.1",
-      reusePort: false,
-    }, () => {
-      log(`serving on http://127.0.0.1:${port}`);
-    });
-  })();
-}

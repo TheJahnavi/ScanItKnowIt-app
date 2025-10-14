@@ -1,5 +1,4 @@
 import express, { Application, Request, Response } from 'express'; // Import types directly
-import { createServer, Server } from 'http';
 import { storage } from './storage.js';
 import { 
   identifyProductAndExtractText, 
@@ -20,7 +19,8 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-export async function registerRoutes(app: Application): Promise<Server | void> {
+// Simplified function that only registers routes and doesn't deal with server creation
+export async function registerRoutes(app: Application): Promise<void> {
   // Upload and analyze product image
   app.post("/api/analyze-product", upload.single('image'), async (req: MulterRequest, res: Response) => {
     try {
@@ -122,9 +122,6 @@ export async function registerRoutes(app: Application): Promise<Server | void> {
     }
   });
 
-  if (process.env.VERCEL) {
-    return undefined;
-  }
-  const httpServer = createServer(app);
-  return httpServer;
+  // In Vercel environment, we don't need to create or return a server
+  // The function simply registers routes and returns void
 }

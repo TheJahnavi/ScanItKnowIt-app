@@ -7,8 +7,12 @@
       "destination": "/api/index.js"
     },
     {
+      "source": "/assets/(.*)",
+      "destination": "/client/dist/assets/$1"
+    },
+    {
       "source": "/(.*)",
-      "destination": "/client/dist/$1"
+      "destination": "/client/dist/index.html"
     }
   ]
 }

@@ -49,17 +49,11 @@ const rootDist = path.join(__dirname, 'dist');
 console.log(`Moving files from ${serverDist} to ${rootDist}`);
 moveFiles(serverDist, rootDist);
 
-// Fix the import path in dist/index.js
+// Delete the full server file, as it is only needed for local dev, not Vercel deployment
 const indexPath = path.join(rootDist, 'index.js');
 if (fs.existsSync(indexPath)) {
-  let indexContent = fs.readFileSync(indexPath, 'utf8');
-  // Replace the import path in the index.js file
-  indexContent = indexContent.replace(
-    'import { registerRoutes } from "./routes.js";',
-    'import { registerRoutes } from "../routes.js";'
-  );
-  fs.writeFileSync(indexPath, indexContent);
-  console.log(`Fixed import path in ${indexPath}`);
+  fs.unlinkSync(indexPath);
+  console.log(`Deleted extraneous full server file: ${indexPath} to prevent Vercel routing conflict.`);
 }
 
 // **DELETE the incorrect API file that was moved from server/dist/api/index.js**

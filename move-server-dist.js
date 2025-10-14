@@ -44,7 +44,6 @@ function moveFiles(src, dest) {
 
 // Use explicit paths - script is in root, so we need to look for server/dist
 const serverDist = path.join(__dirname, 'server', 'dist');
-const apiDist = path.join(__dirname, 'api');
 const rootDist = path.join(__dirname, 'dist');
 
 console.log(`Moving files from ${serverDist} to ${rootDist}`);
@@ -61,6 +60,13 @@ if (fs.existsSync(indexPath)) {
   );
   fs.writeFileSync(indexPath, indexContent);
   console.log(`Fixed import path in ${indexPath}`);
+}
+
+// **DELETE the incorrect API file that was moved from server/dist/api/index.js**
+const incorrectApiPath = path.join(rootDist, 'api', 'index.js');
+if (fs.existsSync(incorrectApiPath)) {
+  fs.unlinkSync(incorrectApiPath);
+  console.log(`Deleted incorrect API file: ${incorrectApiPath}`);
 }
 
 // Create the api/index.js file directly with correct import paths

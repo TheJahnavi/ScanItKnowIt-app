@@ -15,9 +15,6 @@ Applied the final corrected configuration with precise paths aligned with the ac
 {
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
-  "functions": {
-    "dist/server/api/index.js": {}
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",
@@ -43,7 +40,8 @@ Applied the final corrected configuration with precise paths aligned with the ac
 5. **Moved Serverless Function**: Moved the serverless function from `server/vercel-entry.ts` to `api/index.ts` to comply with Vercel's default function detection
 6. **Updated Build Process**: Modified the build process to copy the api directory to the dist directory during the build process
 7. **Fixed TypeScript Typing**: Ensured proper TypeScript typing in `api/index.ts` to resolve TS2339 errors during Vercel serverless compilation
-8. **Configured Node.js Version**: Added `engines` field to root `package.json` to specify Node.js version, removing runtime declaration from `vercel.json` to resolve Vercel platform caching issues
+8. **Configured Node.js Version**: Added `engines` field to root `package.json` to specify Node.js version
+9. **Removed Empty Functions Block**: Removed empty `functions` block from `vercel.json` to resolve "Function must contain at least one property" error
 
 ### 3. Root Build Script and Node.js Configuration
 The root `package.json` build script has been updated to ensure server dependencies are installed before the server build runs:

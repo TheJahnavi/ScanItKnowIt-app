@@ -88,6 +88,9 @@ Updated `move-server-dist.js` to properly copy the `api/index.ts` file to the `d
 ### 8. Import Path Correction
 Fixed the import path in `api/index.ts` to correctly resolve the compiled `routes.js` file in the `dist/` directory, changing from `../server/routes.js` to `../routes.js`.
 
+### 9. Client-Side Asset Path Correction
+Fixed the Vite base path configuration from `"./"` to `"/"` to ensure assets are correctly loaded on Vercel deployment, resolving the blank page issue caused by incorrect asset paths.
+
 ## Expected Outcome
 This final configuration tells Vercel:
 - To run the root build script which handles both client and server builds

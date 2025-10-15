@@ -11,7 +11,7 @@
     "moduleResolution": "nodenext",
     "allowSyntheticDefaultImports": true,
     "removeComments": true,
-    "outDir": "../dist",
+    "outDir": "dist",
     "rootDir": ".",
     "resolveJsonModule": true,
     "noEmit": false,

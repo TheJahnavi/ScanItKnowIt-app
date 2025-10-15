@@ -122,6 +122,15 @@ export async function registerRoutes(app: Application): Promise<void> {
     }
   });
 
+  // Health check endpoint
+  app.get("/api/health", (req: Request, res: Response) => {
+    res.json({
+      status: "healthy",
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime()
+    });
+  });
+
   // In Vercel environment, we don't need to create or return a server
   // The function simply registers routes and returns void
 }

@@ -1,23 +1,23 @@
 {
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
+  "functions": {
+    "dist/server/api/index.js": {
+      "runtime": "nodejs18.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "destination": "/server/api/index.js"
     },
     {
       "source": "/assets/(.*)",
-      "destination": "/client/dist/assets/$1"
+      "destination": "/client/assets/$1"
     },
     {
       "source": "/(.*)",
-      "destination": "/client/dist/index.html"
+      "destination": "/client/index.html"
     }
-  ],
-  "functions": {
-    "dist/api/index.js": {
-      "runtime": "vercel-node@3.2.25"
-    }
-  }
+  ]
 }

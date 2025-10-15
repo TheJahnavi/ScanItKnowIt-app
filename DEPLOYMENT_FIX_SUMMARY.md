@@ -40,7 +40,7 @@ Applied the final corrected configuration with precise paths aligned with the ac
 5. **Moved Serverless Function**: Moved the serverless function from `server/vercel-entry.ts` to `api/index.ts` to comply with Vercel's default function detection
 6. **Updated Build Process**: Modified the build process to copy the api directory to the dist directory during the build process
 7. **Fixed TypeScript Typing**: Ensured proper TypeScript typing in `api/index.ts` to resolve TS2339 errors during Vercel serverless compilation
-8. **Configured Node.js Version**: Added `engines` field to root `package.json` to specify Node.js version
+8. **Configured Node.js Version**: Added `engines` field to root `package.json` to specify Node.js version (upgraded from 18.x to 22.x to resolve Vercel deprecation error)
 9. **Removed Empty Functions Block**: Removed empty `functions` block from `vercel.json` to resolve "Function must contain at least one property" error
 
 ### 3. Root Build Script and Node.js Configuration
@@ -53,7 +53,7 @@ The root `package.json` build script has been updated to ensure server dependenc
 Additionally, the `engines` field was added to specify the Node.js version:
 ```json
 "engines": {
-  "node": "18.x"
+  "node": "22.x"
 }
 ```
 

@@ -15,10 +15,19 @@ Applied the final corrected configuration with precise paths aligned with the ac
 {
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
+  "functions": {
+    "dist/server/api/index.js": {
+      "runtime": "@vercel/node@18.x"
+    }
+  },
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "/api/index.js"
+      "destination": "/server/api/index.js"
+    },
+    {
+      "source": "/assets/(.*)",
+      "destination": "/client/assets/$1"
     },
     {
       "source": "/(.*)",

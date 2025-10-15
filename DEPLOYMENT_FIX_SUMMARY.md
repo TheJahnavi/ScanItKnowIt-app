@@ -16,9 +16,7 @@ Applied the final corrected configuration with precise paths aligned with the ac
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
   "functions": {
-    "dist/server/api/index.js": {
-      "runtime": "@vercel/node@18.x"
-    }
+    "dist/server/api/index.js": {}
   },
   "rewrites": [
     {
@@ -45,13 +43,23 @@ Applied the final corrected configuration with precise paths aligned with the ac
 5. **Moved Serverless Function**: Moved the serverless function from `server/vercel-entry.ts` to `api/index.ts` to comply with Vercel's default function detection
 6. **Updated Build Process**: Modified the build process to copy the api directory to the dist directory during the build process
 7. **Fixed TypeScript Typing**: Ensured proper TypeScript typing in `api/index.ts` to resolve TS2339 errors during Vercel serverless compilation
+8. **Configured Node.js Version**: Added `engines` field to root `package.json` to specify Node.js version, removing runtime declaration from `vercel.json` to resolve Vercel platform caching issues
 
-### 3. Root Build Script
+### 3. Root Build Script and Node.js Configuration
 The root `package.json` build script has been updated to ensure server dependencies are installed before the server build runs:
 ```json
 "build": "npm run build:client && npm run build:server"
 "build:server": "cd server && pnpm install && npm run build && cd .. && node move-server-dist.js"
 ```
+
+Additionally, the `engines` field was added to specify the Node.js version:
+```json
+"engines": {
+  "node": "18.x"
+}
+```
+
+This approach is more reliable than specifying the runtime in `vercel.json` and resolves common Vercel platform caching issues.
 
 This ensures both client and server are built in the correct sequence, with the server dependencies properly installed before the TypeScript compilation.
 

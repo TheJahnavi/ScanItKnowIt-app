@@ -2,9 +2,7 @@
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
   "functions": {
-    "dist/server/api/index.js": {
-      "runtime": "@vercel/node@18.x"
-    }
+    "dist/server/api/index.js": {}
   },
   "rewrites": [
     {

@@ -54,20 +54,40 @@ export function useCamera() {
           videoRef.current.srcObject = stream;
           
           // Wait for video to be ready before setting streaming to true
-          await new Promise<void>((resolve) => {
+          // FIXED: Simplified Promise logic to prevent hanging
+          await new Promise<void>((resolve, reject) => {
             const video = videoRef.current!;
+            let resolved = false;
+            
             const handleLoadedMetadata = () => {
+              if (resolved) return;
+              resolved = true;
               video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              clearTimeout(timeoutId);
               setIsStreaming(true);
               resolve();
             };
             
+            // Timeout to prevent hanging
+            const timeoutId = setTimeout(() => {
+              if (resolved) return;
+              resolved = true;
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              reject(new Error('Camera stream failed to initialize within 5 seconds'));
+            }, 5000);
+            
+            // Always attach the listener first
+            video.addEventListener('loadedmetadata', handleLoadedMetadata);
+            
+            // Then check if already ready
             if (video.readyState >= 1) {
               // Video is already ready
+              if (resolved) return;
+              resolved = true;
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              clearTimeout(timeoutId);
               setIsStreaming(true);
               resolve();
-            } else {
-              video.addEventListener('loadedmetadata', handleLoadedMetadata);
             }
           });
         }
@@ -85,24 +105,45 @@ export function useCamera() {
           videoRef.current.srcObject = stream;
           
           // Wait for video to be ready before setting streaming to true
-          await new Promise<void>((resolve) => {
+          // FIXED: Simplified Promise logic to prevent hanging
+          await new Promise<void>((resolve, reject) => {
             const video = videoRef.current!;
+            let resolved = false;
+            
             const handleLoadedMetadata = () => {
+              if (resolved) return;
+              resolved = true;
               video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              clearTimeout(timeoutId);
               setIsStreaming(true);
               resolve();
             };
             
+            // Timeout to prevent hanging
+            const timeoutId = setTimeout(() => {
+              if (resolved) return;
+              resolved = true;
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              reject(new Error('Camera stream failed to initialize within 5 seconds'));
+            }, 5000);
+            
+            // Always attach the listener first
+            video.addEventListener('loadedmetadata', handleLoadedMetadata);
+            
+            // Then check if already ready
             if (video.readyState >= 1) {
               // Video is already ready
+              if (resolved) return;
+              resolved = true;
+              video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+              clearTimeout(timeoutId);
               setIsStreaming(true);
               resolve();
-            } else {
-              video.addEventListener('loadedmetadata', handleLoadedMetadata);
             }
           });
         }
       }
+
     } catch (err) {
       let errorMessage = "Camera unavailable";
       
@@ -111,8 +152,9 @@ export function useCamera() {
           errorMessage = "Camera permission denied. Please allow camera access and try again.";
         } else if (err.name === "NotFoundError") {
           errorMessage = "No camera found. Use the upload button instead.";
-        } else if (err.name === "NotReadableError") {
-          errorMessage = "Camera in use by another app. Use upload instead.";
+        } else if (err.name === "NotReadableError" || err.message.includes("Camera stream failed to initialize")) {
+          // Handle our custom timeout error
+          errorMessage = "Camera failed to initialize. Please try again or use the upload button instead.";
         } else {
           errorMessage = err.message;
         }
@@ -123,7 +165,7 @@ export function useCamera() {
     } finally {
       setIsStarting(false);
     }
-  }, [facingMode, isStarting]);
+  }, [facingMode]);
 
   const stopCamera = useCallback(() => {
     // Prevent stopping camera while it's starting

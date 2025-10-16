@@ -16,8 +16,16 @@ export function useCamera() {
         throw new Error("Camera not supported in this browser");
       }
 
+      // --- OPTIMAL FIX APPLIED HERE ---
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => {
+          // 1. Add check for track readiness before stopping.
+          if (track.readyState === 'live') {
+            track.stop();
+          }
+        });
+        // 2. Aggressively clear the reference after stopping tracks.
+        streamRef.current = null;
       }
 
       // Try with less restrictive constraints first
@@ -109,7 +117,12 @@ export function useCamera() {
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
-      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current.getTracks().forEach(track => {
+        // Check for track readiness before stopping
+        if (track.readyState === 'live') {
+          track.stop();
+        }
+      });
       streamRef.current = null;
     }
 
@@ -127,8 +140,14 @@ export function useCamera() {
     // Restart camera with new facing mode
     if (isStreaming) {
       setIsStreaming(false);
+      // Apply the same robust cleanup pattern here
       if (streamRef.current) {
-        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current.getTracks().forEach(track => {
+          // Check for track readiness before stopping
+          if (track.readyState === 'live') {
+            track.stop();
+          }
+        });
         streamRef.current = null;
       }
       

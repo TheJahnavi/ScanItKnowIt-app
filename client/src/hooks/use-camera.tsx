@@ -151,10 +151,13 @@ export function useCamera() {
         streamRef.current = null;
       }
       
-      // Wait a bit for cleanup
-      setTimeout(async () => {
+      // Use await instead of setTimeout for better control flow
+      try {
         await startCamera();
-      }, 100);
+      } catch (error) {
+        console.error('Failed to restart camera after switching:', error);
+        // Optionally show an error to the user
+      }
     }
   }, [facingMode, isStreaming, startCamera]);
 

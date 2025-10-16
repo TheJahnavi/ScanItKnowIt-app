@@ -4,11 +4,19 @@ export function useCamera() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [facingMode, setFacingMode] = useState<"user" | "environment">("environment");
+  const [isStarting, setIsStarting] = useState(false); // Track if camera is currently starting
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = useCallback(async () => {
+    // Prevent multiple simultaneous calls to startCamera
+    if (isStarting) {
+      console.warn('Camera is already starting, skipping duplicate call');
+      return;
+    }
+    
     try {
+      setIsStarting(true);
       setError(null);
       
       // Check if camera is available
@@ -112,10 +120,18 @@ export function useCamera() {
       
       setError(errorMessage);
       console.error("Camera error:", err);
+    } finally {
+      setIsStarting(false);
     }
-  }, [facingMode]);
+  }, [facingMode, isStarting]);
 
   const stopCamera = useCallback(() => {
+    // Prevent stopping camera while it's starting
+    if (isStarting) {
+      console.warn('Camera is currently starting, cannot stop');
+      return;
+    }
+    
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(track => {
         // Check for track readiness before stopping
@@ -131,7 +147,7 @@ export function useCamera() {
     }
 
     setIsStreaming(false);
-  }, []);
+  }, [isStarting]);
 
   const switchCamera = useCallback(async () => {
     const newFacingMode = facingMode === "user" ? "environment" : "user";

@@ -53,6 +53,9 @@ export function useCamera() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           
+          // Play the video to handle browser autoplay restrictions
+          await videoRef.current.play();
+          
           // Wait for video to be ready before setting streaming to true
           // FIXED: Simplified Promise logic to prevent hanging
           await new Promise<void>((resolve, reject) => {
@@ -103,6 +106,9 @@ export function useCamera() {
 
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
+          
+          // Play the video to handle browser autoplay restrictions
+          await videoRef.current.play();
           
           // Wait for video to be ready before setting streaming to true
           // FIXED: Simplified Promise logic to prevent hanging

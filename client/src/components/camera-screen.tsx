@@ -81,15 +81,18 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
     <div className="space-y-6" data-testid="camera-screen">
       {/* Camera Viewfinder */}
       <div className="relative aspect-[3/4] rounded-2xl overflow-hidden bg-card border border-border">
-        {isStreaming ? (
-          <video
-            ref={videoRef}
-            autoPlay
-            playsInline
-            className="w-full h-full object-cover"
-            data-testid="camera-video"
-          />
-        ) : (
+        {/* Persistent video element - always rendered but visibility controlled by CSS */}
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className={`w-full h-full object-cover ${isStreaming ? 'block' : 'hidden'}`}
+          data-testid="camera-video"
+        />
+        
+        {/* Camera permission UI - shown when not streaming */}
+        {!isStreaming && (
           <div className="absolute inset-0 bg-gradient-to-br from-muted to-secondary flex items-center justify-center">
             <div className="text-center space-y-4">
               <Camera className="h-16 w-16 mx-auto text-muted-foreground" />
@@ -146,7 +149,7 @@ export function CameraScreen({ onPhotoCapture, onGallerySelect }: CameraScreenPr
           </div>
         )}
         
-        {/* Camera Overlay */}
+        {/* Camera Overlay - shown when streaming */}
         {isStreaming && (
           <div className="absolute inset-0 bg-black/20">
             {/* Focus Frame */}

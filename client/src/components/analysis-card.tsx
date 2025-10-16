@@ -68,9 +68,18 @@ export function AnalysisCard({
 
   const fetchDataMutation = useMutation({
     mutationFn: async () => {
-      const analysisData = getAnalysisData();
-      if (!analysisData) {
+      // Get the current analysis data from sessionStorage
+      const currentAnalysis = sessionStorage.getItem('currentAnalysis');
+      if (!currentAnalysis) {
         throw new Error("No analysis data found");
+      }
+
+      let analysisData;
+      try {
+        analysisData = JSON.parse(currentAnalysis);
+      } catch (parseError) {
+        console.error('Failed to parse currentAnalysis from sessionStorage:', parseError);
+        throw new Error("Invalid analysis data format");
       }
 
       let endpoint = "";
@@ -78,16 +87,29 @@ export function AnalysisCard({
       
       switch (type) {
         case "ingredients":
+          // Validate that we have extracted text for ingredients analysis
+          if (!analysisData.extractedText) {
+            throw new Error("No extracted text available for ingredients analysis");
+          }
           endpoint = `/api/analyze-ingredients/${analysisId}`;
           requestBody = { extractedText: analysisData.extractedText };
           break;
         case "calories":
+          // Validate that we have extracted text for nutrition analysis
+          if (!analysisData.extractedText) {
+            throw new Error("No extracted text available for nutrition analysis");
+          }
           endpoint = `/api/analyze-nutrition/${analysisId}`;
           requestBody = { extractedText: analysisData.extractedText };
           break;
         case "reddit":
+          // Use productName prop if available, otherwise fall back to analysisData
+          const productNameToUse = productName || analysisData.productName;
+          if (!productNameToUse) {
+            throw new Error("No product name available for Reddit analysis");
+          }
           endpoint = `/api/analyze-reddit/${analysisId}`;
-          requestBody = { productName: analysisData.productName };
+          requestBody = { productName: productNameToUse };
           break;
         default:
           throw new Error("Invalid card type");
@@ -104,9 +126,10 @@ export function AnalysisCard({
       });
     },
     onError: (error) => {
+      console.error(`Failed to load ${type} data:`, error);
       toast({
         title: "Analysis Failed",
-        description: `Failed to load ${title.toLowerCase()}. Please try again.`,
+        description: `Failed to load ${title.toLowerCase()}. ${error.message || "Please try again."}`,
         variant: "destructive",
       });
     },

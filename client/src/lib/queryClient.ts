@@ -564,24 +564,98 @@ export async function apiRequest(
     // Log the error for debugging
     console.error('API request failed:', error);
     
-    // Fallback for static deployment (GitHub Pages)
+    // Handle mock API endpoints for analysis
+    if (url.startsWith('/api/analyze-ingredients/') || 
+        url.startsWith('/api/analyze-nutrition/') || 
+        url.startsWith('/api/analyze-reddit/')) {
+      console.log('Handling mock analysis endpoint:', url);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Use the data passed in the request body
+      let requestData = null;
+      if (data && typeof data === 'object') {
+        requestData = data as { extractedText?: any; productName?: string };
+      }
+      
+      // Return analysis based on endpoint and request data
+      let responseData;
+      try {
+        if (url.startsWith('/api/analyze-ingredients/')) {
+          if (!requestData?.extractedText) {
+            throw new Error("No extracted text provided for ingredients analysis");
+          }
+          responseData = analyzeIngredientsFromText(requestData.extractedText);
+        } else if (url.startsWith('/api/analyze-nutrition/')) {
+          if (!requestData?.extractedText) {
+            throw new Error("No extracted text provided for nutrition analysis");
+          }
+          responseData = analyzeNutritionFromText(requestData.extractedText);
+        } else if (url.startsWith('/api/analyze-reddit/')) {
+          const productName = requestData?.productName || "Unknown Product";
+          // Try to get extractedText from sessionStorage if not in request
+          let extractedText = requestData?.extractedText;
+          if (!extractedText) {
+            const currentAnalysis = sessionStorage.getItem('currentAnalysis');
+            if (currentAnalysis) {
+              try {
+                const analysis = JSON.parse(currentAnalysis);
+                extractedText = analysis.extractedText;
+              } catch (parseError) {
+                console.error('Failed to parse currentAnalysis from sessionStorage:', parseError);
+              }
+            }
+          }
+          responseData = generateContextualRedditReviews(productName, extractedText?.productType || "", extractedText);
+        } else {
+          throw new Error("Unknown analysis endpoint");
+        }
+      } catch (analysisError) {
+        console.error('Failed to generate analysis data:', analysisError);
+        throw analysisError; // Re-throw to be caught by onError
+      }
+      
+      // Create a mock Response object
+      return {
+        ok: true,
+        status: 200,
+        json: async () => responseData
+      } as Response;
+    }
+    
+    // Fallback for other endpoints (GitHub Pages static deployment)
     console.log('API request failed, using dynamic analysis for:', url);
     
     // Simulate API delay
     await new Promise(resolve => setTimeout(resolve, 1000));
     
-    // Get the current analysis data from sessionStorage if available
-    const currentAnalysis = sessionStorage.getItem('currentAnalysis');
+    // Use the data passed in the request body if available, otherwise fall back to sessionStorage
     let extractedText = null;
     let productName = "Unknown Product";
     
-    if (currentAnalysis) {
-      try {
-        const analysis = JSON.parse(currentAnalysis);
-        extractedText = analysis.extractedText;
-        productName = analysis.productName;
-      } catch (parseError) {
-        console.error('Failed to parse currentAnalysis from sessionStorage:', parseError);
+    if (data && typeof data === 'object') {
+      // Use data from request body
+      const requestData = data as { extractedText?: any; productName?: string };
+      if (requestData.extractedText) {
+        extractedText = requestData.extractedText;
+      }
+      if (requestData.productName) {
+        productName = requestData.productName;
+      }
+    }
+    
+    // If we still don't have data, try to get it from sessionStorage
+    if (!extractedText && !productName) {
+      const currentAnalysis = sessionStorage.getItem('currentAnalysis');
+      if (currentAnalysis) {
+        try {
+          const analysis = JSON.parse(currentAnalysis);
+          extractedText = analysis.extractedText || null;
+          productName = analysis.productName || "Unknown Product";
+        } catch (parseError) {
+          console.error('Failed to parse currentAnalysis from sessionStorage:', parseError);
+        }
       }
     }
     

@@ -2,10 +2,10 @@
   "name": "scanitknowit-server",
   "version": "1.0.0",
   "type": "module",
-  "main": "dist/vercel-entry.js",
+  "main": "dist/index.js",
   "scripts": {
     "build": "tsc --outDir dist",
-    "start": "node dist/vercel-entry.js"
+    "start": "node dist/index.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

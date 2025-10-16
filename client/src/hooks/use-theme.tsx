@@ -13,28 +13,49 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
-    // Initialize theme from localStorage or system preference
-    const savedTheme = localStorage.getItem("theme") as Theme;
-    if (savedTheme) {
-      setTheme(savedTheme);
-    } else {
-      const systemPreference = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      setTheme(systemPreference);
+    try {
+      // Initialize theme from localStorage or system preference
+      const savedTheme = localStorage.getItem("theme") as Theme;
+      if (savedTheme) {
+        setTheme(savedTheme);
+      } else {
+        // Check if window and matchMedia are available
+        if (typeof window !== 'undefined' && window.matchMedia) {
+          const systemPreference = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          setTheme(systemPreference);
+        } else {
+          // Default to light theme if matchMedia is not available
+          setTheme("light");
+        }
+      }
+    } catch (error) {
+      console.error("Failed to initialize theme from localStorage:", error);
+      setTheme("light");
     }
   }, []);
 
   useEffect(() => {
-    // Apply theme to document
-    if (theme === "dark") {
-      document.documentElement.classList.add("dark");
-    } else {
-      document.documentElement.classList.remove("dark");
+    try {
+      // Apply theme to document
+      if (typeof document !== 'undefined') {
+        if (theme === "dark") {
+          document.documentElement.classList.add("dark");
+        } else {
+          document.documentElement.classList.remove("dark");
+        }
+        localStorage.setItem("theme", theme);
+      }
+    } catch (error) {
+      console.error("Failed to apply theme to document:", error);
     }
-    localStorage.setItem("theme", theme);
   }, [theme]);
 
   const toggleTheme = () => {
-    setTheme(theme === "light" ? "dark" : "light");
+    try {
+      setTheme(theme === "light" ? "dark" : "light");
+    } catch (error) {
+      console.error("Failed to toggle theme:", error);
+    }
   };
 
   return (

@@ -550,6 +550,7 @@ export async function apiRequest(
   data?: unknown | undefined,
 ): Promise<Response> {
   try {
+    // Add better error handling for fetch
     const res = await fetch(url, {
       method,
       headers: data ? { "Content-Type": "application/json" } : {},
@@ -560,6 +561,9 @@ export async function apiRequest(
     await throwIfResNotOk(res);
     return res;
   } catch (error) {
+    // Log the error for debugging
+    console.error('API request failed:', error);
+    
     // Fallback for static deployment (GitHub Pages)
     console.log('API request failed, using dynamic analysis for:', url);
     
@@ -572,21 +576,31 @@ export async function apiRequest(
     let productName = "Unknown Product";
     
     if (currentAnalysis) {
-      const analysis = JSON.parse(currentAnalysis);
-      extractedText = analysis.extractedText;
-      productName = analysis.productName;
+      try {
+        const analysis = JSON.parse(currentAnalysis);
+        extractedText = analysis.extractedText;
+        productName = analysis.productName;
+      } catch (parseError) {
+        console.error('Failed to parse currentAnalysis from sessionStorage:', parseError);
+      }
     }
     
     // Return analysis based on extracted text and endpoint
     let responseData;
-    if (url.includes('analyze-ingredients')) {
-      responseData = extractedText ? analyzeIngredientsFromText(extractedText) : demoData.ingredients;
-    } else if (url.includes('analyze-nutrition')) {
-      responseData = extractedText ? analyzeNutritionFromText(extractedText) : demoData.nutrition;
-    } else if (url.includes('analyze-reddit')) {
-      responseData = generateContextualRedditReviews(productName, extractedText?.productType || "", extractedText);
-    } else {
-      throw error; // Re-throw for non-analysis endpoints
+    try {
+      if (url.includes('analyze-ingredients')) {
+        responseData = extractedText ? analyzeIngredientsFromText(extractedText) : demoData.ingredients;
+      } else if (url.includes('analyze-nutrition')) {
+        responseData = extractedText ? analyzeNutritionFromText(extractedText) : demoData.nutrition;
+      } else if (url.includes('analyze-reddit')) {
+        responseData = generateContextualRedditReviews(productName, extractedText?.productType || "", extractedText);
+      } else {
+        throw error; // Re-throw for non-analysis endpoints
+      }
+    } catch (analysisError) {
+      console.error('Failed to generate fallback data:', analysisError);
+      // Return minimal fallback data
+      responseData = { error: "Failed to analyze data" };
     }
     
     // Create a mock Response object

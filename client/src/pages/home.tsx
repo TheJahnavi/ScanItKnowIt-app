@@ -11,11 +11,6 @@ import type { ProductAnalysis } from "@/types/analysis";
 
 type AppState = "camera" | "processing" | "analysis";
 
-// Clear sessionStorage on page load to ensure fresh state
-useEffect(() => {
-  sessionStorage.clear();
-}, []);
-
 // Client-side image analysis function with timeout and enhanced error handling
 async function performClientSideAnalysis(base64Image: string, fileName: string): Promise<ProductAnalysis> {
   // Simulate processing time

@@ -2,17 +2,15 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { storage } from '../storage-firestore.js';
 import { logger } from '../utils/logger.js';
+import { Auth, getAuth as getFirebaseAuth } from 'firebase-admin/auth';
 
 // Variables to hold Firebase Auth references
-let getAuth: any = null;
-let auth: any = null;
+let auth: Auth | null = null;
 
 // Initialize Firebase Auth if available
 async function initializeFirebaseAuth() {
   try {
-    const firebaseAuth = await import('firebase-admin/auth');
-    getAuth = firebaseAuth.getAuth;
-    auth = getAuth();
+    auth = getFirebaseAuth();
     logger.info("Using Firebase Authentication");
   } catch (error) {
     logger.warn("Firebase Authentication not available, using mock authentication for local development", { error: (error as Error).message });

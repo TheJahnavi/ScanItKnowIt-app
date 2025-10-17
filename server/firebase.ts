@@ -1,10 +1,10 @@
-import { initializeApp, cert } from 'firebase-admin/app';
-import { getFirestore } from 'firebase-admin/firestore';
+import { App, initializeApp, cert } from 'firebase-admin/app';
+import { Firestore, getFirestore } from 'firebase-admin/firestore';
 import { logger } from './utils/logger.js';
 
 // Initialize Firebase Admin SDK
-let app;
-let db;
+let app: App | null;
+let db: Firestore | null;
 
 try {
   // Check if Firebase environment variables are set

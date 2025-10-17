@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { sanitizeLogData } from './sanitize.js';
 
 // Define log levels
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
@@ -34,7 +35,7 @@ class Logger {
       timestamp: new Date().toISOString(),
       level,
       message,
-      meta
+      meta: meta ? sanitizeLogData(meta) : undefined
     };
   }
 

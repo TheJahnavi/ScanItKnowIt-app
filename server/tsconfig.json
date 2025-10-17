@@ -15,7 +15,11 @@
     "rootDir": ".",
     "resolveJsonModule": true,
     "noEmit": false,
-    "typeRoots": ["./node_modules/@types"]
+    "typeRoots": ["./node_modules/@types"],
+    "baseUrl": ".",
+    "paths": {
+      "firebase-admin/*": ["./node_modules/firebase-admin/*"]
+    }
   },
   "include": ["**/*"],
   "exclude": ["node_modules", "dist"]

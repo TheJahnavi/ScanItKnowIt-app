@@ -315,14 +315,119 @@ export async function registerRoutes(app: Application): Promise<void> {
     }
   });
 
-  // Health check endpoint
-  app.get("/api/health", (req: Request, res: Response) => {
+  // Enhanced health check endpoint with dependency checks
+  app.get("/api/health", async (req: Request, res: Response) => {
     logger.info("Health check request");
-    res.json({
+    
+    const healthStatus: any = {
       status: "healthy",
       timestamp: new Date().toISOString(),
-      uptime: process.uptime()
-    });
+      uptime: process.uptime(),
+      checks: {
+        server: {
+          status: "ok",
+          timestamp: new Date().toISOString()
+        }
+      }
+    };
+    
+    let isHealthy = true;
+    
+    try {
+      // Check database connectivity
+      try {
+        // Import storage to avoid circular dependencies
+        const { storage } = await import('./storage.js');
+        
+        // Perform a simple database operation to check connectivity
+        const testUser = await storage.getUserByUsername('health-check-test');
+        healthStatus.checks.database = {
+          status: "ok",
+          timestamp: new Date().toISOString()
+        };
+      } catch (dbError) {
+        healthStatus.checks.database = {
+          status: "error",
+          error: (dbError as Error).message,
+          timestamp: new Date().toISOString()
+        };
+        isHealthy = false;
+      }
+      
+      // Check OpenRouter/OpenAI API connectivity
+      try {
+        // Import OpenAI service
+        const { default: OpenAI } = await import('openai');
+        
+        // Initialize a minimal OpenAI client for health check
+        const openai = new OpenAI({
+          baseURL: "https://openrouter.ai/api/v1",
+          apiKey: process.env.OPENROUTER_API_KEY || "demo"
+        });
+        
+        // Perform a simple API call to check connectivity
+        await openai.models.list();
+        healthStatus.checks.openai = {
+          status: "ok",
+          timestamp: new Date().toISOString()
+        };
+      } catch (apiError) {
+        healthStatus.checks.openai = {
+          status: "error",
+          error: (apiError as Error).message,
+          timestamp: new Date().toISOString()
+        };
+        isHealthy = false;
+      }
+      
+      // Check Reddit API connectivity (if credentials are provided)
+      if (process.env.REDDIT_CLIENT_ID && process.env.REDDIT_CLIENT_SECRET) {
+        try {
+          const redditUrl = 'https://www.reddit.com/api/v1/me';
+          const redditResponse = await fetch(redditUrl, {
+            method: 'GET',
+            headers: {
+              'User-Agent': 'ScanItKnowIt/1.0'
+            }
+          });
+          
+          if (redditResponse.ok) {
+            healthStatus.checks.reddit = {
+              status: "ok",
+              timestamp: new Date().toISOString()
+            };
+          } else {
+            healthStatus.checks.reddit = {
+              status: "error",
+              error: `Reddit API returned status ${redditResponse.status}`,
+              timestamp: new Date().toISOString()
+            };
+            isHealthy = false;
+          }
+        } catch (redditError) {
+          healthStatus.checks.reddit = {
+            status: "error",
+            error: (redditError as Error).message,
+            timestamp: new Date().toISOString()
+          };
+          isHealthy = false;
+        }
+      } else {
+        healthStatus.checks.reddit = {
+          status: "skipped",
+          reason: "Reddit credentials not configured",
+          timestamp: new Date().toISOString()
+        };
+      }
+      
+    } catch (error) {
+      logger.error("Health check failed", { error: (error as Error).message });
+      isHealthy = false;
+      healthStatus.status = "unhealthy";
+      healthStatus.error = (error as Error).message;
+    }
+    
+    res.status(isHealthy ? 200 : 503).json(healthStatus);
   });
 
   // In Vercel environment, we don't need to create or return a server

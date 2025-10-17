@@ -73,6 +73,10 @@ PORT=3001
 # Optional - Logging configuration
 LOG_TO_CONSOLE=true
 LOG_TO_FILE=false
+
+# Optional - Database configuration (for production)
+# DATABASE_URL=postgresql://user:password@localhost:5432/scanitknowit
+# DATABASE_TYPE=postgresql
 ```
 
 Also create a `.env` file in the `client` directory:
@@ -86,12 +90,14 @@ For detailed instructions on configuring your API keys, see [DEPLOYMENT_WITH_API
 
 ### 4. Database Initialization
 
-The application uses SQLite for data persistence. The database file (`scanitknowit.db`) will be automatically created when you start the application.
+The application uses SQLite for data persistence by default. The database file (`scanitknowit.db`) will be automatically created when you start the application.
 
 You can also manually initialize the database:
 ```bash
 npm run init-db
 ```
+
+**For Production Use**: Consider migrating to PostgreSQL or MySQL for better scalability and persistence. See [DATABASE_MIGRATION_GUIDE.md](DATABASE_MIGRATION_GUIDE.md) for detailed instructions.
 
 ### 5. Build the Application
 
@@ -162,13 +168,18 @@ This will start the development server with hot reloading enabled.
 ### User Data
 - `GET /api/user/analyses` - Get user's analysis history
 
+### Health Monitoring
+- `GET /api/health` - Health check endpoint with dependency monitoring
+
 ## Data Persistence
 
-The application stores data in a SQLite database (`scanitknowit.db`) with the following tables:
+The application stores data in a SQLite database (`scanitknowit.db`) by default with the following tables:
 
 1. **users** - User accounts and authentication
 2. **product_analyses** - Product analysis results
 3. **chat_messages** - Chat conversation history
+
+**For Production Use**: For better scalability and persistence, consider migrating to PostgreSQL or MySQL. See [DATABASE_MIGRATION_GUIDE.md](DATABASE_MIGRATION_GUIDE.md) for detailed instructions.
 
 All data is persisted between application restarts.
 
@@ -193,6 +204,16 @@ The application includes several performance enhancements for production use:
 5. **Enhanced Logging**: Structured logging for monitoring and debugging
 
 For detailed information about production deployment enhancements, see [PRODUCTION_DEPLOYMENT_ENHANCEMENTS.md](PRODUCTION_DEPLOYMENT_ENHANCEMENTS.md).
+
+## Health Monitoring
+
+The application includes an enhanced health check endpoint that monitors critical dependencies:
+
+- **Server Status**: Basic Express server health
+- **Database Connectivity**: Database connection verification
+- **External API Status**: OpenAI/OpenRouter and Reddit API connectivity
+
+For detailed information about the health check implementation, see [HEALTH_CHECK_DOCUMENTATION.md](HEALTH_CHECK_DOCUMENTATION.md).
 
 ## Troubleshooting
 
@@ -220,6 +241,8 @@ To update to a new version:
 ## Backup and Recovery
 
 Regularly backup the `scanitknowit.db` file to prevent data loss. This file contains all user accounts and analysis data.
+
+For production environments, implement a comprehensive backup strategy for your database. See [DATABASE_MIGRATION_GUIDE.md](DATABASE_MIGRATION_GUIDE.md) for recommendations.
 
 ## Production Readiness
 

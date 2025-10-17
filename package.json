@@ -10,7 +10,7 @@
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && npm install && npm run build",
-    "build:server": "cd server && npm install && npm run build && cd .. && node move-server-dist.js",
+    "build:server": "cd server && npm run build && cd .. && node move-server-dist.js",
     "start": "cross-env NODE_ENV=production node dist/index.js",
     "init-db": "cd server && npx tsx init-database.ts",
     "check": "tsc",

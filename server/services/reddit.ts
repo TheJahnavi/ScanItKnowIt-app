@@ -1,24 +1,38 @@
 import OpenAI from "openai";
+import { retryWithBackoff, CircuitBreaker } from "../utils/retry.js";
+import { logger } from "../utils/logger.js";
 
-// Using OpenRouter with Mistral model
-// Initialize OpenAI client with environment variable
+// Using OpenRouter with GPT-3.5 model
 const openai = new OpenAI({
     baseURL: "https://openrouter.ai/api/v1",
-    // 🚨 FIX: Reference the environment variable, DO NOT hardcode the key.
-    apiKey: process.env.OPENROUTER_API_KEY
+    apiKey: process.env.OPENROUTER_API_KEY || "demo"
 });
+
+// Create circuit breaker for Reddit API calls
+const redditCircuitBreaker = new CircuitBreaker(3, 30000); // 3 failures, 30 second timeout
+
+// Create circuit breaker for OpenAI API calls
+const openaiCircuitBreaker = new CircuitBreaker(3, 30000); // 3 failures, 30 second timeout
 
 export async function searchRedditReviews(productName: string): Promise<any> {
   try {
-    // Use Reddit API to search for product reviews
+    logger.info("Starting Reddit review search", { productName });
+    const startTime = Date.now();
+    
+    // Use Reddit API to search for product reviews with retry logic
     const searchQuery = encodeURIComponent(`${productName} review`);
     const url = `https://www.reddit.com/search.json?q=${searchQuery}&sort=relevance&limit=50`;
     
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'ScanItKnowIt/1.0'
-      }
-    });
+    const response = await retryWithBackoff(
+      () => redditCircuitBreaker.call(() => fetch(url, {
+        headers: {
+          'User-Agent': 'ScanItKnowIt/1.0'
+        }
+      })),
+      3, // 3 retries
+      2000, // 2 second initial delay (Reddit API can be slow)
+      2 // exponential factor
+    );
 
     if (!response.ok) {
       throw new Error(`Reddit API error: ${response.status}`);
@@ -35,7 +49,7 @@ export async function searchRedditReviews(productName: string): Promise<any> {
       )
       .slice(0, 10);
 
-    // Analyze reviews with AI using the specified prompt
+    // Analyze reviews with OpenRouter using the specified prompt
     if (reviews.length > 0) {
       try {
         const reviewsText = reviews.map((r: any) => {
@@ -45,32 +59,53 @@ export async function searchRedditReviews(productName: string): Promise<any> {
           return `Review (${score} upvotes): ${title} - ${selftext}`;
         }).join('\n\n');
         
-        const response = await openai.chat.completions.create({
-          model: "mistralai/mistral-small-3.2-24b-instruct:free",
-          messages: [
-            {
-              role: "system",
-              content: "Based on the following product text and reddit web search results, provide a brief summary of the overall customer sentiment and key highlights from reviews by classifying them into pros and cons list. Do not include any personal opinions or other text. Respond with valid JSON only in this exact format: { \"pros\": [\"string\"], \"cons\": [\"string\"], \"averageRating\": number, \"totalMentions\": number }"
-            },
-            {
-              role: "user",
-              content: `Product: ${productName}
+        const openaiResponse = await retryWithBackoff(
+          () => openaiCircuitBreaker.call(() => openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: [
+              {
+                role: "system",
+                content: `Based on the following product text and reddit web search results, provide a brief summary of the overall customer sentiment and key highlights from reviews by classifying them into pros and cons list. Do not include any personal opinions or other text. Respond with valid JSON only in this exact format: { "pros": ["string"], "cons": ["string"], "averageRating": number, "totalMentions": number }`
+              },
+              {
+                role: "user",
+                content: `Product: ${productName}
 
 Real Reddit user reviews:
 ${reviewsText}
 
 Extract specific pros and cons mentioned by actual users.`
-            },
-          ],
-        }, {
-          headers: {
-            "HTTP-Referer": "https://scan-it-know-it.replit.app",
-            "X-Title": "Scan It Know It"
-          }
-        });
+              },
+            ],
+          }, {
+            headers: {
+              "HTTP-Referer": "https://scan-it-know-it.replit.app",
+              "X-Title": "Scan It Know It"
+            }
+          })),
+          3, // 3 retries
+          1000, // 1 second initial delay
+          2 // exponential factor
+        );
 
-        const content = response.choices[0].message.content || "";
-        const aiAnalysis = JSON.parse(content);
+        const content = openaiResponse.choices[0].message.content || "";
+        let aiAnalysis;
+        
+        // Try to parse as JSON, fallback to regex extraction if needed
+        try {
+          aiAnalysis = JSON.parse(content);
+        } catch (parseError) {
+          // Extract JSON from markdown code blocks if present
+          const jsonMatch = content.match(/```(?:json)?\s*({.*?})\s*```/s);
+          if (jsonMatch) {
+            aiAnalysis = JSON.parse(jsonMatch[1]);
+          } else {
+            throw parseError;
+          }
+        }
+        
+        const duration = Date.now() - startTime;
+        logger.info("Reddit review search completed", { duration, reviewCount: reviews.length });
         
         return {
           pros: aiAnalysis.pros || getSpecificProsFallback(),
@@ -84,7 +119,7 @@ Extract specific pros and cons mentioned by actual users.`
           }))
         };
       } catch (aiError) {
-        console.error("AI analysis failed, using fallback:", aiError);
+        logger.error("OpenRouter analysis failed, using fallback", { error: (aiError as Error).message });
         // Fall through to original analysis below
       }
     }
@@ -117,6 +152,9 @@ Extract specific pros and cons mentioned by actual users.`
     }
 
     const averageScore = scoreCount > 0 ? totalScore / scoreCount : 3.5;
+    
+    const duration = Date.now() - startTime;
+    logger.info("Reddit review search completed with fallback", { duration, reviewCount: reviews.length });
 
     return {
       pros: pros.slice(0, 4),
@@ -130,7 +168,7 @@ Extract specific pros and cons mentioned by actual users.`
       }))
     };
   } catch (error) {
-    console.error("Error searching Reddit reviews:", error);
+    logger.error("Error searching Reddit reviews", { error: (error as Error).message });
     
     // Return fallback data structure if Reddit API fails
     return {

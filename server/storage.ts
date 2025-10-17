@@ -1,68 +1,113 @@
-// Remove all DB-related imports and dependencies
-// This file now provides in-memory storage that doesn't persist data
+import { db, User, ProductAnalysis, ChatMessage } from './database.js';
+import { logger } from './utils/logger.js';
 
 export interface IStorage {
-  // These methods are kept for interface compatibility but won't persist data
-  getUser(id: string): Promise<undefined>;
-  getUserByUsername(username: string): Promise<undefined>;
-  createUser(user: any): Promise<any>;
+  getUser(id: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: { username: string; password: string }): Promise<User>;
   
-  createProductAnalysis(analysis: any): Promise<any>;
-  getProductAnalysis(id: string): Promise<undefined>;
-  updateProductAnalysis(id: string, updates: any): Promise<undefined>;
+  createProductAnalysis(analysis: any): Promise<ProductAnalysis>;
+  getProductAnalysis(id: string): Promise<ProductAnalysis | undefined>;
+  updateProductAnalysis(id: string, updates: any): Promise<void>;
   
-  createChatMessage(message: any): Promise<any>;
-  getChatMessages(analysisId: string): Promise<any[]>;
+  createChatMessage(message: any): Promise<ChatMessage>;
+  getChatMessages(analysisId: string): Promise<ChatMessage[]>;
+  
+  // Add getUserAnalyses method
+  getUserAnalyses(userId: string): Promise<ProductAnalysis[]>;
 }
 
-export class MemStorage implements IStorage {
-  async getUser(id: string): Promise<undefined> {
-    return undefined;
+export class DatabaseStorage implements IStorage {
+  async getUser(id: string): Promise<User | undefined> {
+    try {
+      logger.debug("Storage: Getting user by ID", { userId: id });
+      return await db.getUser(id);
+    } catch (error) {
+      logger.error("Storage: Failed to get user by ID", { error: (error as Error).message, userId: id });
+      throw error;
+    }
   }
 
-  async getUserByUsername(username: string): Promise<undefined> {
-    return undefined;
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    try {
+      logger.debug("Storage: Getting user by username", { username });
+      return await db.getUserByUsername(username);
+    } catch (error) {
+      logger.error("Storage: Failed to get user by username", { error: (error as Error).message, username });
+      throw error;
+    }
   }
 
-  async createUser(insertUser: any): Promise<any> {
-    // Return a mock user object without storing it
-    return { id: 'mock-user-id', ...insertUser };
+  async createUser(userData: { username: string; password: string }): Promise<User> {
+    try {
+      logger.info("Storage: Creating user", { username: userData.username });
+      return await db.createUser(userData.username, userData.password);
+    } catch (error) {
+      logger.error("Storage: Failed to create user", { error: (error as Error).message, username: userData.username });
+      throw error;
+    }
   }
 
-  async createProductAnalysis(analysis: any): Promise<any> {
-    // Return the analysis object with a mock ID without storing it
-    return { 
-      id: 'mock-analysis-id',
-      createdAt: new Date(),
-      imageUrl: analysis.imageUrl || null,
-      ingredientsData: analysis.ingredientsData || null,
-      nutritionData: analysis.nutritionData || null,
-      redditData: analysis.redditData || null,
-      ...analysis
-    };
+  async createProductAnalysis(analysis: any): Promise<ProductAnalysis> {
+    try {
+      logger.info("Storage: Creating product analysis", { userId: analysis.userId });
+      return await db.createProductAnalysis(analysis);
+    } catch (error) {
+      logger.error("Storage: Failed to create product analysis", { error: (error as Error).message, userId: analysis.userId });
+      throw error;
+    }
   }
 
-  async getProductAnalysis(id: string): Promise<undefined> {
-    return undefined;
+  async getProductAnalysis(id: string): Promise<ProductAnalysis | undefined> {
+    try {
+      logger.debug("Storage: Getting product analysis", { analysisId: id });
+      return await db.getProductAnalysis(id);
+    } catch (error) {
+      logger.error("Storage: Failed to get product analysis", { error: (error as Error).message, analysisId: id });
+      throw error;
+    }
   }
 
-  async updateProductAnalysis(id: string, updates: any): Promise<undefined> {
-    return undefined;
+  async updateProductAnalysis(id: string, updates: any): Promise<void> {
+    try {
+      logger.info("Storage: Updating product analysis", { analysisId: id });
+      return await db.updateProductAnalysis(id, updates);
+    } catch (error) {
+      logger.error("Storage: Failed to update product analysis", { error: (error as Error).message, analysisId: id });
+      throw error;
+    }
   }
 
-  async createChatMessage(message: any): Promise<any> {
-    // Return the message object with a mock ID without storing it
-    return { 
-      id: 'mock-message-id',
-      createdAt: new Date(),
-      ...message
-    };
+  async createChatMessage(message: any): Promise<ChatMessage> {
+    try {
+      logger.info("Storage: Creating chat message", { analysisId: message.analysisId });
+      return await db.createChatMessage(message);
+    } catch (error) {
+      logger.error("Storage: Failed to create chat message", { error: (error as Error).message, analysisId: message.analysisId });
+      throw error;
+    }
   }
 
-  async getChatMessages(analysisId: string): Promise<any[]> {
-    // Return an empty array since we're not storing messages
-    return [];
+  async getChatMessages(analysisId: string): Promise<ChatMessage[]> {
+    try {
+      logger.debug("Storage: Getting chat messages", { analysisId });
+      return await db.getChatMessages(analysisId);
+    } catch (error) {
+      logger.error("Storage: Failed to get chat messages", { error: (error as Error).message, analysisId });
+      throw error;
+    }
+  }
+  
+  // Add getUserAnalyses method
+  async getUserAnalyses(userId: string): Promise<ProductAnalysis[]> {
+    try {
+      logger.debug("Storage: Getting user analyses", { userId });
+      return await db.getUserAnalyses(userId);
+    } catch (error) {
+      logger.error("Storage: Failed to get user analyses", { error: (error as Error).message, userId });
+      throw error;
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();

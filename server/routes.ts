@@ -1,4 +1,4 @@
-import express, { Application, Request, Response } from 'express'; // Import types directly
+import express, { Application, Request, Response } from 'express';
 import { storage } from './storage.js';
 import { 
   identifyProductAndExtractText, 
@@ -7,11 +7,15 @@ import {
   generateChatResponse 
 } from './services/openai.js';
 import { searchRedditReviews } from './services/reddit.js';
+import { authenticate, optionalAuth } from './middleware/auth.js';
+import { generalRateLimiter, authRateLimiter, analysisRateLimiter } from './middleware/rateLimit.js';
+import { logger } from './utils/logger.js';
 import multer from 'multer';
 
-// Extend Express.Request (not express.Request) to include Multer's file property
-interface MulterRequest extends Request {
-  file?: Express.Multer.File; // Use Express.Multer.File type
+// Extend Express.Request to include Multer's file property and user
+interface AuthenticatedRequest extends Request {
+  file?: Express.Multer.File;
+  user?: any;
 }
 
 const upload = multer({
@@ -21,16 +25,73 @@ const upload = multer({
 
 // Simplified function that only registers routes and doesn't deal with server creation
 export async function registerRoutes(app: Application): Promise<void> {
-  // Upload and analyze product image
-  app.post("/api/analyze-product", upload.single('image'), async (req: MulterRequest, res: Response) => {
+  // Apply general rate limiting to all API routes
+  app.use('/api/', generalRateLimiter);
+
+  // User registration with stricter rate limiting
+  app.post("/api/register", authRateLimiter, async (req: Request, res: Response) => {
     try {
+      logger.info("User registration attempt");
+      const { username, password } = req.body;
+      if (!username || !password) {
+        logger.warn("Registration failed: Missing username or password");
+        return res.status(400).json({ error: "Username and password are required" });
+      }
+      
+      // Import auth service here to avoid circular dependencies
+      const { registerUser } = await import('./services/auth.js');
+      const result = await registerUser({ username, password });
+      logger.info("User registration successful", { username });
+      res.json(result);
+    } catch (error: any) {
+      logger.error("Error registering user", { error: error.message });
+      res.status(400).json({ error: error.message || "Failed to register user" });
+    }
+  });
+
+  // User login with stricter rate limiting
+  app.post("/api/login", authRateLimiter, async (req: Request, res: Response) => {
+    try {
+      logger.info("User login attempt");
+      const { username, password } = req.body;
+      if (!username || !password) {
+        logger.warn("Login failed: Missing username or password");
+        return res.status(400).json({ error: "Username and password are required" });
+      }
+      
+      // Import auth service here to avoid circular dependencies
+      const { loginUser } = await import('./services/auth.js');
+      const result = await loginUser({ username, password });
+      logger.info("User login successful", { username });
+      res.json(result);
+    } catch (error: any) {
+      logger.error("Error logging in user", { error: error.message });
+      res.status(400).json({ error: error.message || "Failed to login user" });
+    }
+  });
+
+  // Upload and analyze product image (requires authentication) with analysis rate limiting
+  app.post("/api/analyze-product", analysisRateLimiter, authenticate, upload.single('image'), async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      logger.info("Product analysis request");
+      
       if (!req.file) {
+        logger.warn("Analysis failed: No image file provided");
         return res.status(400).json({ error: "No image file provided" });
       }
+      
+      if (!req.user) {
+        logger.warn("Analysis failed: Authentication required");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
       const base64Image = req.file.buffer.toString('base64');
       
+      // Use OpenRouter for real analysis
       const analysisResult = await identifyProductAndExtractText(base64Image);
+      
       const productAnalysis = await storage.createProductAnalysis({
+        userId: req.user.id,
         productName: analysisResult.productName,
         productSummary: analysisResult.summary,
         extractedText: analysisResult.extractedText,
@@ -39,6 +100,9 @@ export async function registerRoutes(app: Application): Promise<void> {
         nutritionData: null,
         redditData: null,
       });
+      
+      logger.info("Product analysis completed", { analysisId: productAnalysis.id, productName: productAnalysis.productName });
+      
       res.json({
         analysisId: productAnalysis.id,
         productName: productAnalysis.productName,
@@ -46,84 +110,214 @@ export async function registerRoutes(app: Application): Promise<void> {
         extractedText: productAnalysis.extractedText
       });
     } catch (error) {
-      console.error("Error analyzing product:", error);
+      logger.error("Error analyzing product", { error: (error as Error).message });
       res.status(500).json({ error: "Failed to analyze product" });
     }
   });
 
-  // Get ingredients analysis (use Request/Response types directly)
-  app.post("/api/analyze-ingredients/:analysisId", async (req: Request, res: Response) => {
+  // Get ingredients analysis (requires authentication) with analysis rate limiting
+  app.post("/api/analyze-ingredients/:analysisId", analysisRateLimiter, authenticate, async (req: AuthenticatedRequest, res: Response) => {
     try {
-      const { analysisId } = req.params; // req.params is recognized via Request type
-      const { extractedText } = req.body; // req.body is recognized via Request type (thanks to express.json() middleware)
+      logger.info("Ingredients analysis request");
+      
+      if (!req.user) {
+        logger.warn("Ingredients analysis failed: Authentication required");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const { analysisId } = req.params;
+      const { extractedText } = req.body;
+      
+      // Verify that the analysis belongs to the user
+      const analysis = await storage.getProductAnalysis(analysisId);
+      if (!analysis || analysis.userId !== req.user.id) {
+        logger.warn("Ingredients analysis failed: Access denied", { userId: req.user.id, analysisId });
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Use OpenRouter for real analysis
       const ingredientsData = await analyzeIngredients(extractedText);
+      
+      // Update analysis with ingredients data
+      await storage.updateProductAnalysis(analysisId, { ingredientsData });
+      
+      logger.info("Ingredients analysis completed", { analysisId });
       res.json(ingredientsData);
     } catch (error) {
-      console.error("Error analyzing ingredients:", error);
+      logger.error("Error analyzing ingredients", { error: (error as Error).message });
       res.status(500).json({ error: "Failed to analyze ingredients" });
     }
   });
 
-  // Get nutrition analysis
-  app.post("/api/analyze-nutrition/:analysisId", async (req: Request, res: Response) => {
+  // Get nutrition analysis (requires authentication) with analysis rate limiting
+  app.post("/api/analyze-nutrition/:analysisId", analysisRateLimiter, authenticate, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      logger.info("Nutrition analysis request");
+      
+      if (!req.user) {
+        logger.warn("Nutrition analysis failed: Authentication required");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
       const { analysisId } = req.params;
       const { extractedText } = req.body;
+      
+      // Verify that the analysis belongs to the user
+      const analysis = await storage.getProductAnalysis(analysisId);
+      if (!analysis || analysis.userId !== req.user.id) {
+        logger.warn("Nutrition analysis failed: Access denied", { userId: req.user.id, analysisId });
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Use OpenRouter for real analysis
       const nutritionData = await analyzeNutrition(extractedText);
+      
+      // Update analysis with nutrition data
+      await storage.updateProductAnalysis(analysisId, { nutritionData });
+      
+      logger.info("Nutrition analysis completed", { analysisId });
       res.json(nutritionData);
     } catch (error) {
-      console.error("Error analyzing nutrition:", error);
+      logger.error("Error analyzing nutrition", { error: (error as Error).message });
       res.status(500).json({ error: "Failed to analyze nutrition" });
     }
   });
 
-  // Get Reddit reviews
-  app.post("/api/analyze-reddit/:analysisId", async (req: Request, res: Response) => {
+  // Get Reddit reviews (requires authentication) with analysis rate limiting
+  app.post("/api/analyze-reddit/:analysisId", analysisRateLimiter, authenticate, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      logger.info("Reddit reviews analysis request");
+      
+      if (!req.user) {
+        logger.warn("Reddit reviews analysis failed: Authentication required");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
       const { analysisId } = req.params;
       const { productName } = req.body;
+      
+      // Verify that the analysis belongs to the user
+      const analysis = await storage.getProductAnalysis(analysisId);
+      if (!analysis || analysis.userId !== req.user.id) {
+        logger.warn("Reddit reviews analysis failed: Access denied", { userId: req.user.id, analysisId });
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Use Reddit API + OpenRouter for real analysis
       const redditData = await searchRedditReviews(productName);
+      
+      // Update analysis with reddit data
+      await storage.updateProductAnalysis(analysisId, { redditData });
+      
+      logger.info("Reddit reviews analysis completed", { analysisId });
       res.json(redditData);
     } catch (error) {
-      console.error("Error analyzing Reddit reviews:", error);
+      logger.error("Error analyzing Reddit reviews", { error: (error as Error).message });
       res.status(500).json({ error: "Failed to analyze Reddit reviews" });
     }
   });
 
-  // Chat with AI about product
-  app.post("/api/chat/:analysisId", async (req: Request, res: Response) => {
+  // Chat with AI about product (requires authentication) with analysis rate limiting
+  app.post("/api/chat/:analysisId", analysisRateLimiter, authenticate, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      logger.info("Chat request");
+      
+      if (!req.user) {
+        logger.warn("Chat failed: Authentication required");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
       const { analysisId } = req.params;
-      const { message, productData } = req.body;
+      const { message, productData, chatHistory } = req.body;
+      
       if (!message) {
+        logger.warn("Chat failed: Message is required");
         return res.status(400).json({ error: "Message is required" });
       }
-      const aiResponse = await generateChatResponse(message, productData);
+      
+      // Verify that the analysis belongs to the user
+      const analysis = await storage.getProductAnalysis(analysisId);
+      if (!analysis || analysis.userId !== req.user.id) {
+        logger.warn("Chat failed: Access denied", { userId: req.user.id, analysisId });
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      // Use OpenRouter for real chat with conversation history
+      const aiResponse = await generateChatResponse(message, productData, chatHistory);
+      
+      // Save chat message
+      const chatMessage = await storage.createChatMessage({
+        analysisId,
+        userId: req.user.id,
+        message,
+        response: aiResponse
+      });
+      
+      logger.info("Chat response generated", { analysisId });
+      
       res.json({
         message: message,
         response: aiResponse,
         timestamp: new Date()
       });
     } catch (error) {
-      console.error("Error processing chat:", error);
+      logger.error("Error processing chat", { error: (error as Error).message });
       res.status(500).json({ error: "Failed to process chat message" });
     }
   });
 
-  // Get chat history (returns empty array since we're not storing data)
-  app.get("/api/chat/:analysisId", async (req: Request, res: Response) => {
+  // Get chat history (requires authentication)
+  app.get("/api/chat/:analysisId", authenticate, async (req: AuthenticatedRequest, res: Response) => {
     try {
+      logger.info("Chat history request");
+      
+      if (!req.user) {
+        logger.warn("Chat history failed: Authentication required");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
       const { analysisId } = req.params;
+      
+      // Verify that the analysis belongs to the user
+      const analysis = await storage.getProductAnalysis(analysisId);
+      if (!analysis || analysis.userId !== req.user.id) {
+        logger.warn("Chat history failed: Access denied", { userId: req.user.id, analysisId });
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
       const messages = await storage.getChatMessages(analysisId);
+      
+      logger.info("Chat history retrieved", { analysisId, messageCount: messages.length });
       res.json(messages);
     } catch (error) {
-      console.error("Error getting chat history:", error);
+      logger.error("Error getting chat history", { error: (error as Error).message });
       res.status(500).json({ error: "Failed to get chat history" });
+    }
+  });
+
+  // Get user's analysis history (requires authentication)
+  app.get("/api/user/analyses", authenticate, async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      logger.info("User analyses history request");
+      
+      if (!req.user) {
+        logger.warn("User analyses history failed: Authentication required");
+        return res.status(401).json({ error: "Authentication required" });
+      }
+      
+      const analyses = await storage.getUserAnalyses(req.user.id);
+      
+      logger.info("User analyses history retrieved", { userId: req.user.id, analysisCount: analyses.length });
+      res.json(analyses);
+    } catch (error) {
+      logger.error("Error getting user analyses", { error: (error as Error).message });
+      res.status(500).json({ error: "Failed to get user analyses" });
     }
   });
 
   // Health check endpoint
   app.get("/api/health", (req: Request, res: Response) => {
+    logger.info("Health check request");
     res.json({
       status: "healthy",
       timestamp: new Date().toISOString(),

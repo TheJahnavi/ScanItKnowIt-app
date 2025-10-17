@@ -4,21 +4,32 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tsc --outDir dist",
-    "start": "node dist/index.js"
+    "build": "tsc --outDir dist && node -e \"import('./dist/database.js').then(db => db.db.initialize().then(() => console.log('Database initialized'))).catch(console.error)\"",
+    "start": "node dist/index.js",
+    "dev": "tsx index.ts",
+    "test-env": "node test-env.js"
   },
   "dependencies": {
+    "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
     "express": "^4.21.2",
+    "express-rate-limit": "^7.4.0",
+    "jsonwebtoken": "^9.0.2",
     "multer": "^2.0.2",
+    "nanoid": "^5.1.5",
     "node-fetch": "^3.3.0",
-    "openai": "^5.16.0"
+    "openai": "^5.16.0",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^5.1.7"
   },
   "devDependencies": {
-    "@types/cors": "^2.8.17",
+    "@types/bcrypt": "^5.0.2",
+    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
+    "@types/jsonwebtoken": "^9.0.5",
     "@types/multer": "^2.0.0",
     "@types/node": "20.16.11",
+    "tsx": "^4.19.1",
     "typescript": "5.6.3"
   }
 }

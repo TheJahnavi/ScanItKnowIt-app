@@ -1,9 +1,20 @@
 import express, { type Express, type Request, type Response, type NextFunction } from "express";
+import cors from "cors";
 import { registerRoutes } from "./routes.js";
 import { setupVite, serveStatic, log } from "./vite.js";
+import { logger } from "./utils/logger.js";
 import path from "path";
 
 const app: Express = express();
+
+// CORS configuration
+const corsOptions = {
+  origin: process.env.CORS_ORIGIN ? process.env.CORS_ORIGIN.split(',') : 'http://localhost:3001',
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -31,6 +42,7 @@ app.use((req, res, next) => {
       }
 
       log(logLine);
+      logger.logApiRequest(req.method, requestPath, res.statusCode, duration);
     }
   });
 
@@ -57,6 +69,8 @@ if (process.env.NODE_ENV === "production" && !process.env.VERCEL) {
 app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
   const status = err.status || err.statusCode || 500;
   const message = err.message || "Internal Server Error";
+  
+  logger.error("Unhandled error", { error: err, status, message });
 
   res.status(status).json({ message });
   throw err;

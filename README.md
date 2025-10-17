@@ -15,6 +15,7 @@ This is the ScanItKnowIt application, a product analysis tool that uses AI to pr
 - Client and server builds configured
 - Static file serving from client/public
 - Updated vercel.json to use correct Vercel v2 syntax with rewrites and source/destination
+- Fixed PostCSS build error with Node.js engine requirements
 
 ## Technologies Used
 - React/Vite for frontend
@@ -94,6 +95,10 @@ The application includes several production deployment enhancements:
 - **Performance Monitoring**: Request timing, external API tracking
 
 For detailed information about these enhancements, see [PRODUCTION_DEPLOYMENT_ENHANCEMENTS.md](PRODUCTION_DEPLOYMENT_ENHANCEMENTS.md).
+
+## PostCSS Build Error Fix
+
+Fixed the `Cannot read properties of null (reading 'matches')` error by adding explicit Node.js engine requirements to all package.json files. For details, see [POSTCSS_BUILD_ERROR_FIX.md](POSTCSS_BUILD_ERROR_FIX.md).
 
 ## Local Development
 

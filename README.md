@@ -23,7 +23,7 @@ This is the ScanItKnowIt application, a product analysis tool that uses AI to pr
 - Express.js for backend
 - OpenAI API for analysis
 - Reddit API for reviews
-- SQLite for data persistence
+- Firebase Firestore for data persistence (replacing SQLite)
 - Vercel for deployment
 
 # ScanItKnowIt - Vercel Deployment
@@ -49,6 +49,38 @@ ScanItKnowIt/
 └── vercel.json             # Vercel configuration file
 ```
 
+## Firebase Integration
+
+The application now supports Firebase Firestore as a data persistence layer, replacing the previous SQLite database. This provides a more scalable, serverless solution for production deployments.
+
+### Migration from SQLite to Firebase
+
+If you're migrating from the existing SQLite database:
+
+1. Follow the setup instructions in [FIREBASE_SETUP.md](FIREBASE_SETUP.md)
+2. Use the migration script at [server/migrate-to-firestore.ts](server/migrate-to-firestore.ts) to transfer existing data
+3. Update your environment variables to include Firebase credentials
+
+### Firebase Setup
+
+See [FIREBASE_SETUP.md](FIREBASE_SETUP.md) for detailed instructions on:
+- Creating a Firebase project
+- Generating service account keys
+- Configuring Firestore database
+- Setting environment variables
+- Security rules for production
+
+### Testing Firebase Integration
+
+To test the Firebase integration:
+
+1. Configure Firebase environment variables
+2. Run the test script:
+   ```bash
+   cd server
+   npx tsx test-firestore.ts
+   ```
+
 ## Deployment to Vercel
 
 1. **Prepare the Repository**
@@ -62,11 +94,16 @@ ScanItKnowIt/
    - Vercel will auto-detect the `vercel.json` and build both frontend/backend
    - Set environment variables in the Vercel dashboard:
      - `OPENROUTER_API_KEY`
+     - Firebase credentials (if using Firebase)
      - Reddit API credentials (if using Reddit integration)
 
 4. **Environment Variables**
    - In Vercel → **Project Settings** → **Environment Variables**, add:
      - `OPENROUTER_API_KEY` (required for AI features)
+     - Firebase credentials (if using Firebase):
+       - `FIREBASE_PROJECT_ID`
+       - `FIREBASE_CLIENT_EMAIL`
+       - `FIREBASE_PRIVATE_KEY`
      - Reddit API credentials (if applicable)
      - `API_NINJAS_KEY` (if using API Ninjas services)
 
@@ -113,7 +150,7 @@ For complete details, see:
 The application has been enhanced with critical production readiness features:
 
 ### Database Persistence and Scalability
-- Comprehensive guide for migrating from SQLite to PostgreSQL/MySQL for production
+- Comprehensive guide for migrating from SQLite to Firebase Firestore for production
 - See [DATABASE_MIGRATION_GUIDE.md](DATABASE_MIGRATION_GUIDE.md) for detailed instructions
 
 ### Enhanced Health Check Endpoint
@@ -209,5 +246,5 @@ For detailed information about production readiness enhancements, see:
 - Vercel Functions are used for serverless backend deployment
 - Static files are served through Vercel's CDN
 - All dependencies are properly configured for Vercel deployment
-- Data is stored in SQLite database for persistence (see database migration guide for production)
+- Data is stored in Firebase Firestore database for persistence (replacing SQLite)
 - User authentication is implemented with JWT tokens

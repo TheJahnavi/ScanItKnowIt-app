@@ -95,13 +95,16 @@ Extract specific pros and cons mentioned by actual users.`
         try {
           aiAnalysis = JSON.parse(content);
         } catch (parseError) {
-          // Extract JSON from markdown code blocks if present
-          const jsonMatch = content.match(/```(?:json)?\s*({.*?})\s*```/s);
-          if (jsonMatch) {
-            aiAnalysis = JSON.parse(jsonMatch[1]);
-          } else {
-            throw parseError;
+          // Extract JSON from markdown code blocks
+          const jsonMatch = content.match(/```(?:json)?\s*({.*?})\s*```/);
+          if (jsonMatch && jsonMatch[1]) {
+            try {
+              return JSON.parse(jsonMatch[1]);
+            } catch (e) {
+              logger.warn("Failed to parse JSON from markdown code block", { error: (e as Error).message });
+            }
           }
+          throw parseError;
         }
         
         const duration = Date.now() - startTime;

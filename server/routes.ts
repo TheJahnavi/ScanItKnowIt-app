@@ -1,5 +1,5 @@
 import express, { Application, Request, Response } from 'express';
-import { storage } from './storage.js';
+import { storage } from './storage-firestore.js';
 import { 
   identifyProductAndExtractText, 
   analyzeIngredients, 
@@ -337,7 +337,8 @@ export async function registerRoutes(app: Application): Promise<void> {
       // Check database connectivity
       try {
         // Import storage to avoid circular dependencies
-        const { storage } = await import('./storage.js');
+        // Use Firestore storage instead of SQLite storage
+        const { storage } = await import('./storage-firestore.js');
         
         // Perform a simple database operation to check connectivity
         const testUser = await storage.getUserByUsername('health-check-test');

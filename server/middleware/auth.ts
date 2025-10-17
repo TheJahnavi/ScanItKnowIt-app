@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import { verifyToken, getUserFromToken } from '../services/auth.js';
+import { verifyToken, getUserFromToken, verifyFirebaseIdToken, getUserFromFirebase } from '../services/auth.js';
 import { logger } from '../utils/logger.js';
 
 declare global {
@@ -29,7 +29,28 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-    // Verify token
+    // Check if it's a Firebase ID token or JWT token
+    if (token.length > 100) {
+      // Likely a Firebase ID token (longer)
+      try {
+        // Verify Firebase ID token
+        const decoded = await verifyFirebaseIdToken(token);
+        
+        // Get user from Firebase Auth
+        const user = await getUserFromFirebase(decoded.uid);
+        
+        // Attach user to request
+        req.user = user;
+        
+        logger.debug("Firebase authentication successful", { userId: user.id, username: user.username });
+        return next();
+      } catch (firebaseError) {
+        logger.warn("Firebase authentication failed, trying JWT", { error: (firebaseError as Error).message });
+        // Fall through to JWT verification
+      }
+    }
+    
+    // Verify JWT token (for compatibility with existing system)
     const decoded = await verifyToken(token);
     
     // Get user from token
@@ -38,7 +59,7 @@ export async function authenticate(req: Request, res: Response, next: NextFuncti
     // Attach user to request
     req.user = user;
     
-    logger.debug("Authentication successful", { userId: user.id, username: user.username });
+    logger.debug("JWT authentication successful", { userId: user.id, username: user.username });
     next();
   } catch (error) {
     logger.warn("Authentication failed", { error: (error as Error).message });
@@ -65,7 +86,28 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-    // Verify token
+    // Check if it's a Firebase ID token or JWT token
+    if (token.length > 100) {
+      // Likely a Firebase ID token (longer)
+      try {
+        // Verify Firebase ID token
+        const decoded = await verifyFirebaseIdToken(token);
+        
+        // Get user from Firebase Auth
+        const user = await getUserFromFirebase(decoded.uid);
+        
+        // Attach user to request
+        req.user = user;
+        
+        logger.debug("Optional Firebase authentication successful", { userId: user.id, username: user.username });
+        return next();
+      } catch (firebaseError) {
+        logger.debug("Optional Firebase authentication failed, trying JWT", { error: (firebaseError as Error).message });
+        // Fall through to JWT verification
+      }
+    }
+
+    // Verify JWT token (for compatibility with existing system)
     const decoded = await verifyToken(token);
     
     // Get user from token
@@ -74,7 +116,7 @@ export async function optionalAuth(req: Request, res: Response, next: NextFuncti
     // Attach user to request
     req.user = user;
     
-    logger.debug("Optional authentication successful", { userId: user.id, username: user.username });
+    logger.debug("Optional JWT authentication successful", { userId: user.id, username: user.username });
     next();
   } catch (error) {
     logger.debug("Optional authentication failed, continuing without user", { error: (error as Error).message });

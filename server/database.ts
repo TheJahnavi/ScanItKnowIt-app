@@ -369,7 +369,7 @@ export class DatabaseService {
       const duration = Date.now() - startTime;
       logger.debug("User analyses retrieved", { userId, analysisCount: rows.length, duration });
       
-      return rows.map(row => ({
+      return rows.map((row: any) => ({
         id: row.id,
         userId: row.userId,
         productName: row.productName,
@@ -383,6 +383,69 @@ export class DatabaseService {
       }));
     } catch (error) {
       logger.error("Failed to get user analyses", { error: (error as Error).message, userId });
+      throw error;
+    }
+  }
+
+  // Add methods for migration
+  async getAllUsers(): Promise<User[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    try {
+      const rows = await this.db.all('SELECT * FROM users ORDER BY createdAt ASC');
+      
+      return rows.map((row: any) => ({
+        id: row.id,
+        username: row.username,
+        password: row.password,
+        createdAt: new Date(row.createdAt)
+      }));
+    } catch (error) {
+      logger.error("Failed to get all users", { error: (error as Error).message });
+      throw error;
+    }
+  }
+
+  async getAllProductAnalyses(): Promise<ProductAnalysis[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    try {
+      const rows = await this.db.all('SELECT * FROM product_analyses ORDER BY createdAt ASC');
+      
+      return rows.map((row: any) => ({
+        id: row.id,
+        userId: row.userId,
+        productName: row.productName,
+        productSummary: row.productSummary,
+        extractedText: row.extractedText ? JSON.parse(row.extractedText) : null,
+        imageUrl: row.imageUrl,
+        ingredientsData: row.ingredientsData ? JSON.parse(row.ingredientsData) : null,
+        nutritionData: row.nutritionData ? JSON.parse(row.nutritionData) : null,
+        redditData: row.redditData ? JSON.parse(row.redditData) : null,
+        createdAt: new Date(row.createdAt)
+      }));
+    } catch (error) {
+      logger.error("Failed to get all product analyses", { error: (error as Error).message });
+      throw error;
+    }
+  }
+
+  async getAllChatMessages(): Promise<ChatMessage[]> {
+    if (!this.db) throw new Error('Database not initialized');
+    
+    try {
+      const rows = await this.db.all('SELECT * FROM chat_messages ORDER BY createdAt ASC');
+      
+      return rows.map((row: any) => ({
+        id: row.id,
+        analysisId: row.analysisId,
+        userId: row.userId,
+        message: row.message,
+        response: row.response,
+        createdAt: new Date(row.createdAt)
+      }));
+    } catch (error) {
+      logger.error("Failed to get all chat messages", { error: (error as Error).message });
       throw error;
     }
   }

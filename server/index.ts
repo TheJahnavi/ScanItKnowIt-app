@@ -78,3 +78,11 @@ app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
 
 // For Vercel, we need to export the app
 export default app;
+
+// Add server listener for local development
+if (process.env.NODE_ENV !== 'production') {
+  const port = process.env.PORT || 3002; // Changed to 3002 to avoid conflicts
+  app.listen(port, () => {
+    console.log(`Server running on port ${port}`);
+  });
+}

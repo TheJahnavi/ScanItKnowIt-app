@@ -10,12 +10,14 @@
     "dev": "cross-env NODE_ENV=development tsx server/index.ts",
     "build": "npm run build:client && npm run build:server",
     "build:client": "cd client && npm install && npm run build",
-    "build:server": "cd server && pnpm install && npm run build && cd .. && node move-server-dist.js",
+    "build:server": "cd server && npm install && npm run build && cd .. && node move-server-dist.js",
     "start": "cross-env NODE_ENV=production node dist/index.js",
+    "init-db": "cd server && npx tsx init-database.ts",
     "check": "tsc",
     "verify-deployment": "node scripts/verify-deployment-readiness.js",
     "smoke-test": "node scripts/smoke-test.js",
-    "generate-deployment-report": "node scripts/generate-deployment-report.js"
+    "generate-deployment-report": "node scripts/generate-deployment-report.js",
+    "generate-jwt-secret": "node generate-jwt-secret.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

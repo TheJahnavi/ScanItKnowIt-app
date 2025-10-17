@@ -1049,40 +1049,20 @@ export default function Home() {
 
   const analyzeProductMutation = useMutation({
     mutationFn: async (file: File) => {
-      try {
-        // First try the API
-        const formData = new FormData();
-        formData.append("image", file);
-        
-        const response = await fetch("/api/analyze-product", {
-          method: "POST",
-          body: formData,
-        });
+      // Send the image to the server API
+      const formData = new FormData();
+      formData.append("image", file);
+      
+      const response = await fetch("/api/analyze-product", {
+        method: "POST",
+        body: formData,
+      });
 
-        if (!response.ok) {
-          throw new Error("API not available");
-        }
-
-        return response.json();
-      } catch (error) {
-        // Perform client-side image analysis for static deployment
-        console.log('Performing client-side image analysis');
-        
-        // Convert file to base64 for analysis
-        const base64 = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const result = reader.result as string;
-            resolve(result.split(',')[1]); // Remove data:image/jpeg;base64, prefix
-          };
-          reader.readAsDataURL(file);
-        });
-        
-        // Perform actual OCR analysis
-        const analysisResult = await performClientSideAnalysis(base64, file.name);
-        
-        return analysisResult;
+      if (!response.ok) {
+        throw new Error("Failed to analyze product");
       }
+
+      return response.json();
     },
     onSuccess: (data: ProductAnalysis) => {
       setAnalysis(data);

@@ -59,27 +59,22 @@ export function AnalysisCard({
 
   // Get the analysis data from sessionStorage
   const getAnalysisData = () => {
-    const sessionId = sessionStorage.getItem('currentSessionId');
-    if (!sessionId) return null;
+    const currentAnalysis = sessionStorage.getItem('currentAnalysis');
+    if (!currentAnalysis) return null;
     
-    const analysisData = sessionStorage.getItem(`analysis-${sessionId}`);
-    return analysisData ? JSON.parse(analysisData) : null;
+    try {
+      return JSON.parse(currentAnalysis);
+    } catch (parseError) {
+      console.error('Failed to parse currentAnalysis from sessionStorage:', parseError);
+      return null;
+    }
   };
 
   const fetchDataMutation = useMutation({
     mutationFn: async () => {
-      // Get the current analysis data from sessionStorage
-      const currentAnalysis = sessionStorage.getItem('currentAnalysis');
-      if (!currentAnalysis) {
+      const analysisData = getAnalysisData();
+      if (!analysisData) {
         throw new Error("No analysis data found");
-      }
-
-      let analysisData;
-      try {
-        analysisData = JSON.parse(currentAnalysis);
-      } catch (parseError) {
-        console.error('Failed to parse currentAnalysis from sessionStorage:', parseError);
-        throw new Error("Invalid analysis data format");
       }
 
       let endpoint = "";
@@ -87,28 +82,25 @@ export function AnalysisCard({
       
       switch (type) {
         case "ingredients":
-          // Validate that we have extracted text for ingredients analysis
           if (!analysisData.extractedText) {
             throw new Error("No extracted text available for ingredients analysis");
           }
-          endpoint = `/api/analyze-ingredients/${analysisId}`;
+          endpoint = `/api/analyze-ingredients/${analysisData.analysisId || analysisData.id || analysisId}`;
           requestBody = { extractedText: analysisData.extractedText };
           break;
         case "calories":
-          // Validate that we have extracted text for nutrition analysis
           if (!analysisData.extractedText) {
             throw new Error("No extracted text available for nutrition analysis");
           }
-          endpoint = `/api/analyze-nutrition/${analysisId}`;
+          endpoint = `/api/analyze-nutrition/${analysisData.analysisId || analysisData.id || analysisId}`;
           requestBody = { extractedText: analysisData.extractedText };
           break;
         case "reddit":
-          // Use productName prop if available, otherwise fall back to analysisData
           const productNameToUse = productName || analysisData.productName;
           if (!productNameToUse) {
             throw new Error("No product name available for Reddit analysis");
           }
-          endpoint = `/api/analyze-reddit/${analysisId}`;
+          endpoint = `/api/analyze-reddit/${analysisData.analysisId || analysisData.id || analysisId}`;
           requestBody = { productName: productNameToUse };
           break;
         default:

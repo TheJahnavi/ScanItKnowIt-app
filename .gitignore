@@ -23,10 +23,13 @@ server-dist
 
 # Logs
 *.log
+logs/
 
 # Database
 *.sqlite
 *.sqlite3
+*.db
+scanitknowit.db
 
 # IDE and editor files
 .vscode/*
@@ -57,3 +60,6 @@ replit.nix
 # Server lock files and backup files
 server/package-lock.json
 server/services/*.bak
+
+# Generated files
+server/scanitknowit.db

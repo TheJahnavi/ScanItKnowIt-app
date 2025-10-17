@@ -80,7 +80,7 @@ export function AnalysisScreen({ analysis, onScanAnother }: AnalysisScreenProps)
           <h3 className="font-semibold text-primary">Product Summary</h3>
           <div className="text-sm text-muted-foreground leading-relaxed space-y-1" data-testid="text-product-summary">
             {summaryPoints.map((point, index) => (
-              <p key={index}>• {point}</p>
+              <p key={index}>{point.trim()}</p>
             ))}
           </div>
         </div>

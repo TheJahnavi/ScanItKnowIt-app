@@ -1,39 +1,11 @@
-import express, { Application } from 'express';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import app from '../server/index.js'; // Import the fully configured Express application from server
-
-// Get __dirname equivalent in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const app: Application = express();
-
-// Middleware
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// API routes should come before the catch-all route
-// Using type assertion to resolve type mismatch between root and server directories
-registerRoutes(app as any);
-
-// Serve client static files - corrected path for Vercel
-const clientDist = path.join(__dirname, '../client');
-console.log('Client dist path:', clientDist);
-app.use(express.static(clientDist));
-
-// Catch-all route to serve index.html for client-side routing
-app.get('*', (req, res) => {
-  const indexPath = path.join(clientDist, 'index.html');
-  res.sendFile(indexPath);
-});
+import serverApp from '../server/dist/index.js'; // Import the fully configured Express application from server's compiled output
 
 // Export the app for serverless deployment
-export default app;
+export default serverApp;
 
 // Export individual HTTP methods for Vercel serverless functions
-export const GET = app;
-export const POST = app;
-export const PUT = app;
-export const DELETE = app;
-export const PATCH = app;
+export const GET = serverApp;
+export const POST = serverApp;
+export const PUT = serverApp;
+export const DELETE = serverApp;
+export const PATCH = serverApp;

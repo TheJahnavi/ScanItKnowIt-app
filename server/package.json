@@ -8,8 +8,8 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc --outDir dist",
-    "start": "node dist/index.js",
-    "dev": "tsx index.ts",
+    "start": "node dist/start.js",
+    "dev": "tsx start.ts",
     "test-env": "node test-env.js",
     "deploy": "node ../scripts/deploy-to-vercel.js"
   },

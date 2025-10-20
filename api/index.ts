@@ -1,7 +1,7 @@
 import express, { Application } from 'express';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { registerRoutes } from '../server/routes.js'; // Import from server directory
+import app from '../server/index.js'; // Import the fully configured Express application from server
 
 // Get __dirname equivalent in ES modules
 const __filename = fileURLToPath(import.meta.url);

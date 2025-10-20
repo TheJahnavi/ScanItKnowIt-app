@@ -1,7 +1,5 @@
 import app from './index.js';
 
-const port = process.env.PORT || 3000;
-
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
-});
+// For Vercel serverless functions, we only need to export the app instance
+// Do not start the server with app.listen() as this will cause timeouts
+export default app;

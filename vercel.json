@@ -2,7 +2,7 @@
   "outputDirectory": "dist",
   "buildCommand": "npm run build",
   "functions": {
-    "server/api/index.ts": {
+    "server/api/index.js": {
       "maxDuration": 60
     }
   },

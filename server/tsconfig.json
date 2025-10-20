@@ -7,7 +7,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node", "express"],
+    // Removed specific "types" array to allow TypeScript to automatically discover type definitions
+    // This fixes TS2688 errors where TypeScript cannot find type definition files for 'express' and 'node'
     "moduleResolution": "nodenext",
     "allowSyntheticDefaultImports": true,
     "removeComments": true,

@@ -20,6 +20,7 @@ server-dist
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # Logs
 *.log
@@ -63,3 +64,8 @@ server/services/*.bak
 
 # Generated files
 server/scanitknowit.db
+
+# Security
+*.pem
+*.key
+.env*.local

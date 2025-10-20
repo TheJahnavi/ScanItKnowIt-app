@@ -1,4 +1,5 @@
 import rateLimit from 'express-rate-limit';
+import { Request, Response, NextFunction } from 'express';
 import { logger } from '../utils/logger.js';
 
 // Rate limiter for general API endpoints
@@ -10,7 +11,7 @@ export const generalRateLimiter = rateLimit({
   },
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   legacyHeaders: false, // Disable the `X-RateLimit-*` headers
-  handler: (req, res, next) => {
+  handler: (req: Request, res: Response, next: NextFunction) => {
     logger.warn("Rate limit exceeded for general API", { 
       ip: req.ip,
       url: req.url,
@@ -31,7 +32,7 @@ export const authRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res, next) => {
+  handler: (req: Request, res: Response, next: NextFunction) => {
     logger.warn("Rate limit exceeded for authentication", { 
       ip: req.ip,
       url: req.url,
@@ -52,7 +53,7 @@ export const analysisRateLimiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
-  handler: (req, res, next) => {
+  handler: (req: Request, res: Response, next: NextFunction) => {
     logger.warn("Rate limit exceeded for analysis API", { 
       ip: req.ip,
       url: req.url,

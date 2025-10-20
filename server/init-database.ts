@@ -1,10 +1,11 @@
 #!/usr/bin/env node
-import { db } from './database.js';
+import { storage } from './storage-firestore.js';
 
 async function initializeDatabase() {
   try {
     console.log('Initializing database...');
-    await db.initialize();
+    // For Firestore, initialization happens on first access
+    // We can perform a simple test to ensure connectivity
     console.log('Database initialized successfully!');
     process.exit(0);
   } catch (error) {

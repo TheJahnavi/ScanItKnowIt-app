@@ -10,7 +10,8 @@
     "build": "tsc --outDir dist",
     "start": "node dist/index.js",
     "dev": "tsx index.ts",
-    "test-env": "node test-env.js"
+    "test-env": "node test-env.js",
+    "deploy": "node ../scripts/deploy-to-vercel.js"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",

@@ -1,5 +1,34 @@
 import { logger } from './utils/logger.js';
-import { User, ProductAnalysis, ChatMessage } from './database.js';
+
+// Define interfaces for our data models
+export interface User {
+  id: string;
+  username: string;
+  password: string; // In production, this should be hashed
+  createdAt: Date;
+}
+
+export interface ProductAnalysis {
+  id: string;
+  userId: string; // Associate with user
+  productName: string;
+  productSummary: string;
+  extractedText: any;
+  imageUrl: string | null;
+  ingredientsData: any | null;
+  nutritionData: any | null;
+  redditData: any | null;
+  createdAt: Date;
+}
+
+export interface ChatMessage {
+  id: string;
+  analysisId: string;
+  userId: string; // Associate with user
+  message: string;
+  response: string;
+  createdAt: Date;
+}
 
 // Mock database for local development
 const mockDb = {

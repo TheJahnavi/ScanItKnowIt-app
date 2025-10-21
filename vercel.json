@@ -1,9 +1,6 @@
 {
   "outputDirectory": "dist/client",
   "buildCommand": "cd client && pnpm install && pnpm run build && cd ../server && pnpm install && pnpm run build",
-  "functions": {
-    "server/api/index.ts": {}
-  },
   "rewrites": [
     {
       "source": "/api/(.*)",

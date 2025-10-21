@@ -16,6 +16,7 @@
     "rootDir": ".",
     "resolveJsonModule": true,
     "noEmit": false,
+    "declaration": true,
     "typeRoots": ["./node_modules/@types"],
     "baseUrl": ".",
     "paths": {

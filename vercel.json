@@ -1,13 +1,13 @@
 {
   "outputDirectory": "dist/client", 
   "buildCommand": "cd client && pnpm install && pnpm run build && cd ../server && pnpm install && pnpm run build",
-
+  
   "functions": {
     "server/api/index.ts": {
-      "runtime": "nodejs20.x"
+      "runtime": "node@20.x"
     }
   },
-  
+
   "rewrites": [
     {
       "source": "/api/(.*)",

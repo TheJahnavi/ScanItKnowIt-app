@@ -1,14 +1,22 @@
 {
-  "outputDirectory": "dist/client",
+  "outputDirectory": "dist/client", 
   "buildCommand": "cd client && pnpm install && pnpm run build && cd ../server && pnpm install && pnpm run build",
-  "rewrites": [
+  
+  "routes": [
     {
-      "source": "/api/(.*)",
-      "destination": "/server/api/index.ts"
+      "src": "/api/(.*)",
+      "dest": "/server/api/index.ts",
+      "status": 200
     },
     {
-      "source": "/(.*)",
-      "destination": "/$1" 
+      "src": "/assets/(.*)",
+      "dest": "/dist/client/assets/$1", 
+      "status": 200
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/index.html",
+      "status": 200
     }
   ]
 }

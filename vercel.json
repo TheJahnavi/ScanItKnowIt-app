@@ -3,7 +3,7 @@
   "buildCommand": "cd client && pnpm install && pnpm run build && cd ../server && pnpm install && pnpm run build",
   "functions": {
     "server/api/index.ts": {
-      "runtime": "@vercel/node"
+      "runtime": "nodejs20.x"
     }
   },
   "rewrites": [

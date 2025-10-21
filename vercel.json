@@ -8,25 +8,22 @@
       }
     },
     {
-      "src": "server/**/*.ts",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["server/**"]
-      }
+      "src": "server/api/index.ts",
+      "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server/index.ts"
+      "dest": "/server/api/index.ts"
     },
     {
       "src": "/assets/(.*)",
-      "dest": "/client/assets/$1"
+      "dest": "/dist/client/assets/$1"
     },
     {
       "src": "/(.*)",
-      "dest": "/client/index.html"
+      "dest": "/dist/client/index.html"
     }
   ]
 }

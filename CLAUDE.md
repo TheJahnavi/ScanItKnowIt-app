@@ -5,32 +5,44 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Commands
 
 ```bash
-# Development (Express + Vite HMR together via tsx)
+# Development — Express + Vite HMR together via tsx
 npm run dev
 
 # Type checking only (no emit)
 npm run check
 
-# Production build (Vite client + esbuild server + copy assets)
+# Production build — Vite client + esbuild server bundle + copy assets
 npm run build
 
-# Run production build
+# Run production build locally
 npm start
 ```
 
-No test suite. No lint script — use `npm run check` for TypeScript errors.
+No test suite. No lint script — `npm run check` is the only code-quality gate.
+
+## Deployment Architecture
+
+**Frontend** — GitHub Pages serves `scanitknowit.com` from static files (`index.html` + `assets/`) committed to the repo root. These are the output of `vite build` (`dist/public/`), manually copied to root and committed.
+
+**Backend** — Express API runs separately (Vercel target). Because frontend and backend are on different origins, every API call in the client must be prefixed with `import.meta.env.VITE_API_URL ?? ''`. In local dev this env var is unset, so relative URLs fall through to Vite's dev proxy. In production, set it to the Vercel deployment URL.
+
+**Repositories**
+- Local dev / feature source: this repo
+- Production repo (GitHub Pages host): `https://github.com/TheJahnavi/ScanItKnowIt-app`
 
 ## Architecture
 
-Monorepo: React SPA (Vite) served by Express. In development, Vite is mounted inside Express (`server/vite.ts`). In production, Express serves `dist/public/`.
+Monorepo: React SPA (Vite) served by Express. In development, Vite is mounted inside Express (`server/vite.ts`). In production Express serves `dist/public/`.
 
-### AI Stack (two-tier fallback)
+`server/index.ts` must export `app` as default (for serverless import) and guard `server.listen()` behind `!process.env.VERCEL`. `server/start.ts` handles the listener for local dev.
+
+### AI Stack (three-tier fallback)
 
 **Primary — Groq** (`server/services/groq.ts`):
 - Vision: `llama-3.2-11b-vision-preview` (500 req/day free)
 - Text analysis (composition, ingredients, reddit, chat): `llama-3.3-70b-versatile` (14,400 req/day free)
 - Uses `response_format: { type: "json_object" }` — no markdown unwrapping needed
-- Rate-limit state: two module-level vars `lastPerMinute429` / `lastPerDay429` with separate cooldowns (65 s / 23 h)
+- Rate-limit state: module-level `lastPerMinute429` / `lastPerDay429` with separate cooldowns (65 s / 23 h)
 
 **Fallback — Gemini** (`server/services/openai.ts` — misnamed; uses `@google/generative-ai`, not OpenAI):
 - Both vision and analysis: `gemini-2.5-flash-lite` (20 req/day free)
@@ -52,7 +64,7 @@ Monorepo: React SPA (Vite) served by Express. In development, Vite is mounted in
    - **Worker path** (preferred): zero-copy transfer to `OffscreenCanvas` Web Worker at `/workers/image-compressor.worker.js` via `Transferable` bitmap.
    - **Main-thread fallback**: `<canvas>` resize + `toBlob`.
 3. XHR `POST /api/analyze-product` (multipart, 50 MB limit). XHR `upload.onprogress` drives 0→30%; a `setInterval` simulates 30→90% during AI processing.
-4. Server: Groq vision → Gemini vision → OCR fallback. Saves raw bytes to `data/images/img-{ts}.jpg`; falls back to inline `data:image/jpeg;base64,...` if disk write fails.
+4. Server: Groq vision → Gemini vision → OCR fallback. Saves raw bytes to `data/images/img-{ts}.jpg`; falls back to inline `data:image/jpeg;base64,...` if disk write fails (read-only filesystem on Vercel).
 5. Each detected product stored in `MemStorage` with a UUID; all deep-analysis fields start `null`. Capped at 5 products.
 6. Response: `[{ analysisId, productName, productSummary, productCategory, productContext:{what,who,when}, extractedText:{ingredients,brand}, imageUrl, isFallbackMode, isGeneralScene, compositionData:null, ingredientsData:null, redditData:null }]`
 7. `CameraScreen` internal view states: `camera → loading → identification`. On single product: skips selection screen. `home.tsx` `AppState` has only two values: `"camera" | "analysis"`.
@@ -113,7 +125,10 @@ All prompts are defined in two places — Groq version in `server/services/groq.
 | `client/src/lib/nutrient-score.ts` | `computeNutrientDensityScore()` — scores 0–100 from protein/fiber/vitamins vs calories |
 | `client/src/lib/top-metrics.ts` | `getTopThreeMetrics()` — picks 3 most meaningful arc-gauge metrics for product type |
 | `client/src/hooks/useAnalysisData.ts` | `useCompositionQuery`, `useIngredientsQuery`, `useRedditQuery` — TanStack Query wrappers with `forceRefetch()` that sets `forceRefresh:true` in POST body |
-| `client/src/hooks/use-scan-history.ts` | `addScan()`, `getScanHistory()` — `localStorage`-backed scan history, max 50 entries |
+| `client/src/components/history.tsx` | `HistorySheet` — bottom-sheet portal showing scan history with 7-day activity bar chart, category donut, and per-scan health score badge; opened from camera screen |
+| `client/src/components/tutorial-overlay.tsx` | `TutorialOverlay` — first-run 5-step spotlight walkthrough; auto-shows unless `localStorage.getItem("siki-tutorial-done")` is set; rendered inside `home.tsx` alongside `CameraScreen` |
+| `client/src/components/data-error-state.tsx` | Error/empty state component used inside analysis cards |
+| `client/src/hooks/use-scan-history.ts` | `addScan()`, `getHistory()`, `updateScanScore()`, `clearHistory()`, `getTrends()`, `computeHealthScore()`, `guessCategory()` — `localStorage`-backed scan history, max 10 entries; emits `"siki-history-update"` custom event on changes |
 
 ### Key design decisions & non-obvious patterns
 
@@ -121,13 +136,15 @@ All prompts are defined in two places — Groq version in `server/services/groq.
 
 **forceRefresh bypass:** POST bodies with `{ forceRefresh: true }` skip the cached `compositionData`/`ingredientsData`/`redditData` in storage and re-call AI. Each card's Refresh button sends this.
 
-**Image storage:** Raw bytes written to `data/images/img-{ts}.jpg` on server startup dir. On disk-write failure (e.g., read-only filesystem), falls back to `data:image/jpeg;base64,...` inline in MemStorage — functional but memory-heavy.
+**Image storage:** Raw bytes written to `data/images/img-{ts}.jpg`. The `mkdirSync` at module load time must be wrapped in try-catch — Vercel's filesystem is read-only and will throw on cold start. On disk-write failure, falls back to `data:image/jpeg;base64,...` inline in MemStorage. The `/api/images/:filename` route 404s on Vercel (images stored as base64 instead).
 
 **`isGeneralScene` flag:** Set when `extractedText.brand` matches `/^not applicable$|^not visible$/i`. Reddit card is hidden for general scenes (always 503s). Composition prompt switches to meal-estimation mode.
 
 **Scan Another cleanup:** `handleScanAnother()` in `home.tsx` calls `queryClient.removeQueries` for all four cache key types eagerly — doesn't wait for gcTime.
 
-**No database:** `MemStorage` (`server/storage.ts`) holds three `Map` instances. All data lost on server restart. Same product scanned twice costs two full AI calls.
+**No database:** `MemStorage` (`server/storage.ts`) holds three `Map` instances. All data lost on server restart. On Vercel, each cold start gets fresh Maps — no scan history persists across invocations.
+
+**CORS:** Required because GitHub Pages (`scanitknowit.com`) and the backend (Vercel, different domain) are cross-origin. The Express app must call `app.use(cors({ origin: process.env.CORS_ORIGIN || 'https://scanitknowit.com' }))`. All client API fetch calls prefix with `import.meta.env.VITE_API_URL ?? ''`.
 
 ### Dead code (safe to ignore)
 
@@ -162,25 +179,14 @@ Brand assets (`Logo`, `AppIconDark`, `AppIconLight`, `AppTitle`) live in `client
 
 ### Environment variables
 
-| Variable | Required | Service | Notes |
+| Variable | Required | Where used | Notes |
 |---|---|---|---|
-| `GROQ_API_KEY` | **Yes** | Groq Cloud | Primary AI — all vision + analysis |
-| `GEMINI_API_KEY` | Yes | Google AI Studio | Fallback AI — `gemini-2.5-flash-lite` |
-| `OCR_API_KEY` | No | OCR.Space | Barcode/label OCR fallback; has hardcoded default in `ocrFallback.ts` |
-| `USDA_API_KEY` | No | USDA FDC | Nutrition composition fallback; has hardcoded default in `usdaFdc.ts` |
-| `NODE_ENV` | Yes (prod) | Express | Must be `production` — switches from Vite HMR to `serveStatic()` |
-| `PORT` | No | Express | Defaults to `10000` (Render-compatible); Render sets automatically |
-| `ALLOWED_ORIGINS` | No | CORS (if added) | Comma-separated allowed origins for production CORS |
-
-### Repositories
-
-- **Production repo**: `https://github.com/TheJahnavi/ScanItKnowIt-app`
-- **Old repo (cleaned)**: `https://github.com/jahnavitry-tech/ScanItKnowItprod`
-
-## graphify
-
-This project has a graphify knowledge graph at `graphify-out/`.
-
-- Before answering architecture or codebase questions, read `graphify-out/GRAPH_REPORT.md` for god nodes and community structure.
-- If `graphify-out/wiki/index.md` exists, navigate it instead of reading raw files.
-- After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost).
+| `GROQ_API_KEY` | **Yes** | Backend | Primary AI — all vision + analysis |
+| `GEMINI_API_KEY` | **Yes** | Backend | Fallback AI — `gemini-2.5-flash-lite` |
+| `OCR_API_KEY` | No | Backend | OCR.Space fallback; hardcoded default in `ocrFallback.ts` |
+| `USDA_API_KEY` | No | Backend | USDA FDC nutrition fallback; hardcoded default in `usdaFdc.ts` |
+| `CORS_ORIGIN` | Yes (prod) | Backend | Allowed frontend origin, e.g. `https://scanitknowit.com` |
+| `NODE_ENV` | Yes (prod) | Backend | Must be `production` — switches from Vite HMR to `serveStatic()` |
+| `PORT` | No | Backend | Defaults to `10000`; overridden by host automatically |
+| `VERCEL` | Auto | Backend | Set to `1` by Vercel runtime — guards `listen()` and `serveStatic()` |
+| `VITE_API_URL` | Yes (prod) | Frontend build | Backend URL baked into Vite build; empty string in local dev |

@@ -1,0 +1,11 @@
+node_modules
+.git
+.env
+*.log
+logs/
+data/images/
+v2/
+graphify-out/
+.local/
+dist/
+client/

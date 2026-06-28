@@ -14,7 +14,13 @@ import multer from "multer";
 // Images are saved to disk so MemStorage never holds base64 strings in the heap.
 // The directory is created on first route registration.
 export const IMG_DIR = join(process.cwd(), "data", "images");
-if (!existsSync(IMG_DIR)) mkdirSync(IMG_DIR, { recursive: true });
+// Vercel's filesystem is read-only; the route handler already falls back to base64
+// when disk writes fail, so a missing directory is safe to ignore here.
+try {
+  if (!existsSync(IMG_DIR)) mkdirSync(IMG_DIR, { recursive: true });
+} catch {
+  // read-only filesystem (e.g. Vercel) — image fallback to base64 handles this
+}
 
 
 const upload = multer({

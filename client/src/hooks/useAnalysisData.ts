@@ -2,6 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useRef } from "react";
 import type { ICompositionAnalysis, IngredientsData, RedditData } from "@/types/analysis";
 
+const API_BASE = import.meta.env.VITE_API_URL ?? "";
+
 // gcTime: 30 min — freed after navigation away, preventing unbounded memory
 // growth when scanning multiple products in a session.
 const GC_TIME = 30 * 60 * 1000;
@@ -82,7 +84,7 @@ export function useCompositionQuery(analysisId: string, enabled: boolean) {
       const isForced = forceRef.current;
       forceRef.current = false;
       return postAnalysis(
-        "/api/analyze-composition",
+        `${API_BASE}/api/analyze-composition`,
         { analysisId, forceRefresh: isForced },
         signal,
       ) as Promise<ICompositionAnalysis>;
@@ -110,7 +112,7 @@ export function useIngredientsQuery(analysisId: string, enabled: boolean) {
       const isForced = forceRef.current;
       forceRef.current = false;
       return postAnalysis(
-        "/api/analyze-ingredients",
+        `${API_BASE}/api/analyze-ingredients`,
         { analysisId, forceRefresh: isForced },
         signal,
       ) as Promise<IngredientsData>;
@@ -138,7 +140,7 @@ export function useRedditQuery(analysisId: string, enabled: boolean) {
       const isForced = forceRef.current;
       forceRef.current = false;
       return postRedditAnalysis(
-        "/api/analyze-reddit",
+        `${API_BASE}/api/analyze-reddit`,
         { analysisId, forceRefresh: isForced },
         signal,
       ) as Promise<RedditData>;

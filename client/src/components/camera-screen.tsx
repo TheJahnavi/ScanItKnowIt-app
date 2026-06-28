@@ -218,7 +218,7 @@ export function CameraScreen({ onProductAnalysisStart }: CameraScreenProps) {
         reject(new Error("Network error"));
       };
 
-      xhr.open("POST", "/api/analyze-product");
+      xhr.open("POST", `${import.meta.env.VITE_API_URL ?? ""}/api/analyze-product`);
       xhr.send(formData);
 
       // After upload completes, simulate AI processing: 30 → 90 %

@@ -1,5 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { checkQuotaCooldown } from "./openai";
+import { checkQuotaCooldown } from "./openai.js";
 
 async function withRetry<T>(fn: () => Promise<T>, maxRetries = 2, delayMs = 2500): Promise<T> {
   let lastErr: Error = new Error("Unknown error");

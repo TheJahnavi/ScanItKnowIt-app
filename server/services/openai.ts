@@ -3,8 +3,8 @@ import {
   analyzeImageWithVision, 
   analyzeIngredientsHF, 
   generateChatResponseHF 
-} from "./huggingface";
-import { analyzeImageWithFallback } from "./fallback";
+} from "./huggingface.js";
+import { analyzeImageWithFallback } from "./fallback.js";
 
 // Flag to use HuggingFace instead of Google to avoid rate limits
 const USE_HUGGINGFACE = false;

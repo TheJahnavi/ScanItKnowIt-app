@@ -1,8 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cors from "cors";
-import { registerRoutes, IMG_DIR } from "./routes";
+import { registerRoutes, IMG_DIR } from "./routes.js";
 import dotenv from "dotenv";
-import { logger } from "./logger";
+import { logger } from "./logger.js";
 
 // Load environment variables
 dotenv.config();

@@ -2,13 +2,13 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { writeFileSync, mkdirSync, existsSync } from "fs";
 import { join } from "path";
-import { storage } from "./storage";
-import { identifyProductAndExtractText, analyzeIngredients, analyzeComposition, generateChatResponse } from "./services/openai";
-import { scanProductWithGroqVision, analyzeCompositionGroq, analyzeIngredientsGroq, searchRedditReviewsGroq, generateChatResponseGroq, checkGroqCooldown } from "./services/groq";
-import { searchRedditReviews } from "./services/reddit";
-import { analyzeIngredientsFallback, analyzeCompositionFallback } from "./services/fallbackGrounding";
-import { extractTextWithOCR, extractProductInfoFromOCR, searchOpenFoodFacts, searchOpenBeautyFacts, extractFromOpenFoodFacts, extractFromOpenBeautyFacts, extractGeneralItemInfo, mapOFactsToCompositionSchema } from "./services/ocrFallback";
-import { searchUSDAFDC, mapUSDAtoCompositionSchema } from "./services/usdaFdc";
+import { storage } from "./storage.js";
+import { identifyProductAndExtractText, analyzeIngredients, analyzeComposition, generateChatResponse } from "./services/openai.js";
+import { scanProductWithGroqVision, analyzeCompositionGroq, analyzeIngredientsGroq, searchRedditReviewsGroq, generateChatResponseGroq, checkGroqCooldown } from "./services/groq.js";
+import { searchRedditReviews } from "./services/reddit.js";
+import { analyzeIngredientsFallback, analyzeCompositionFallback } from "./services/fallbackGrounding.js";
+import { extractTextWithOCR, extractProductInfoFromOCR, searchOpenFoodFacts, searchOpenBeautyFacts, extractFromOpenFoodFacts, extractFromOpenBeautyFacts, extractGeneralItemInfo, mapOFactsToCompositionSchema } from "./services/ocrFallback.js";
+import { searchUSDAFDC, mapUSDAtoCompositionSchema } from "./services/usdaFdc.js";
 import multer from "multer";
 
 // Images are saved to disk so MemStorage never holds base64 strings in the heap.
